@@ -1,0 +1,24 @@
+# Dependencias
+**/node_modules/
+
+# Variables de entorno (contienen credenciales)
+**/.env
+
+# Archivos compilados
+**/dist/
+**/.angular/cache/
+
+# Prisma generado
+**/prisma/generated/
+
+# Configuración personal de Claude Code
+**/.claude/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-error.log*

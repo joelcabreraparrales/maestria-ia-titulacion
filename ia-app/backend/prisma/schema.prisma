@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client"
+  output   = "./generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["auth", "chatbot", "person", "public"]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model credential {
+  credential_id         Int                    @id(map: "pk_credential") @default(autoincrement())
+  credential_code       String                 @unique @db.Uuid
+  profile_id            Int                    @unique
+  username              String                 @unique @db.VarChar(250)
+  credential_password   String
+  last_login            DateTime?              @db.Timestamp(6)
+  failed_login_attempts Int?                   @default(0)
+  credential_locked     Boolean                @default(false)
+  created_at            DateTime               @default(now()) @db.Timestamp(6)
+  updated_at            DateTime               @default(now()) @db.Timestamp(6)
+  audit_log             audit_log[]
+  profile               profile                @relation(fields: [profile_id], references: [profile_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_profile_credential")
+  credential_role       credential_role[]
+  user_session          user_session[]
+  chatbot_conversation  chatbot_conversation[]
+
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model user_session {
+  session_id     Int         @id(map: "pk_session") @default(autoincrement())
+  credential_id  Int
+  access_token   String      @unique
+  session_code   String      @unique @db.Uuid
+  date_init      DateTime    @db.Timestamp(6)
+  date_end       DateTime    @db.Timestamp(6)
+  session_active Boolean     @default(true)
+  created_at     DateTime    @default(now()) @db.Timestamp(6)
+  updated_at     DateTime    @default(now()) @db.Timestamp(6)
+  audit_log      audit_log[]
+  credential     credential  @relation(fields: [credential_id], references: [credential_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_credential_session")
+
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model profile {
+  profile_id      Int         @id(map: "pk_profile") @default(autoincrement())
+  profile_code    String      @unique @db.Uuid
+  first_name      String      @db.VarChar(50)
+  first_lastname  String      @db.VarChar(50)
+  second_name     String?     @db.VarChar(50)
+  second_lastname String?     @db.VarChar(50)
+  profile_email   String      @unique @db.VarChar(250)
+  dni             String      @unique @db.VarChar(25)
+  date_birth      DateTime    @db.Date
+  profile_active  Boolean     @default(true)
+  created_at      DateTime    @default(now()) @db.Timestamp(6)
+  updated_at      DateTime    @default(now()) @db.Timestamp(6)
+  credential      credential?
+
+  @@schema("person")
+}
+
+model credential_role {
+  credential_role_id Int        @id(map: "pk_credential_role") @default(autoincrement())
+  credential_id      Int
+  role_id            Int
+  created_at         DateTime   @default(now()) @db.Timestamp(6)
+  updated_at         DateTime   @default(now()) @db.Timestamp(6)
+  credential         credential @relation(fields: [credential_id], references: [credential_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_credential_credentialrole")
+  role               role       @relation(fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_role_credentialrole")
+
+  @@unique([credential_id, role_id], map: "uq_credential_role")
+  @@schema("auth")
+}
+
+model role {
+  role_id          Int               @id(map: "pk_role") @default(autoincrement())
+  role_code        String            @unique @db.Uuid
+  role_name        String            @unique @db.VarChar(50)
+  role_description String?           @db.VarChar(250)
+  role_active      Boolean           @default(true)
+  created_at       DateTime          @default(now()) @db.Timestamp(6)
+  updated_at       DateTime          @default(now()) @db.Timestamp(6)
+  credential_role  credential_role[]
+
+  @@schema("auth")
+}
+
+model audit_log {
+  audit_log_id  Int          @id(map: "pk_audit_log") @default(autoincrement())
+  credential_id Int
+  session_id    Int
+  user_action   String
+  record_active Boolean      @default(true)
+  created_at    DateTime     @default(now()) @db.Timestamp(6)
+  updated_at    DateTime     @default(now()) @db.Timestamp(6)
+  credential    credential   @relation(fields: [credential_id], references: [credential_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_credential_auditlog")
+  user_session  user_session @relation(fields: [session_id], references: [session_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_session_auditlog")
+
+  @@schema("auth")
+}
+
+model chatbot_conversation {
+  conversation_id   Int               @id(map: "pk_chatbot_conversation") @default(autoincrement())
+  conversation_code String            @unique @db.Uuid
+  credential_id     Int
+  username          String            @db.VarChar(250)
+  title             String?           @db.VarChar(255)
+  is_active         Boolean           @default(true)
+  created_at        DateTime          @default(now()) @db.Timestamp(6)
+  updated_at        DateTime          @default(now()) @db.Timestamp(6)
+  credential        credential        @relation(fields: [credential_id], references: [credential_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_credential_conversation")
+  chatbot_message   chatbot_message[]
+
+  @@schema("chatbot")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model chatbot_message {
+  message_id           Int                   @id(map: "pk_chatbot_message") @default(autoincrement())
+  message_code         String                @unique @db.Uuid
+  conversation_id      Int
+  role                 String                @db.VarChar(20)
+  content              String
+  created_at           DateTime              @default(now()) @db.Timestamp(6)
+  chatbot_conversation chatbot_conversation  @relation(fields: [conversation_id], references: [conversation_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_conversation_message")
+  chatbot_query_result chatbot_query_result?
+
+  @@schema("chatbot")
+}
+
+model chatbot_query_result {
+  query_result_id Int             @id(map: "pk_chatbot_query_result") @default(autoincrement())
+  message_id      Int             @unique
+  sql_generated   String
+  result_data     Json?
+  chart_config    Json?
+  row_count       Int?
+  execution_ms    Int?
+  error_message   String?
+  created_at      DateTime        @default(now()) @db.Timestamp(6)
+  chatbot_message chatbot_message @relation(fields: [message_id], references: [message_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_message_queryresult")
+
+  @@schema("chatbot")
+}
