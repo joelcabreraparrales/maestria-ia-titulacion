@@ -1,0 +1,4 @@
+Variable sensible,Disparity Ratio,Cumple regla 80%
+Dominio (top-10),0.62,False
+JOIN en SQL,0.6743162233046085,False
+Longitud,0.4985795454545455,False

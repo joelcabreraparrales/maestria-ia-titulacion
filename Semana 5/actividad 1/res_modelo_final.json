@@ -1,0 +1,14 @@
+{
+  "best_params": {
+    "max_depth": 25,
+    "min_samples_split": 3,
+    "n_estimators": 382
+  },
+  "baseline_f1": 0.44482388660388944,
+  "final_f1": 0.4670571072363962,
+  "improvement_pp": 2.2233220632506767,
+  "disparity_ratio_before": 0.4985795454545455,
+  "disparity_ratio_after": 0.6290322580645161,
+  "rsi_mean": 0.8103917627276866,
+  "rsi_min": 0.47899305549697363
+}

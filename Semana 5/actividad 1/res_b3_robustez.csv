@@ -1,0 +1,10 @@
+Familia,Escenario,F1 perturbado,RSI,Veredicto
+Ruido,Gaussiano σ=0.01,0.4457122900684699,1.0019972026937745,✅ Robusto
+Ruido,Gaussiano σ=0.05,0.4326373442395542,0.9726036691568517,✅ Robusto
+Ruido,Gaussiano σ=0.1,0.28403234987388337,0.6385276475199969,❌ Frágil
+Ruido,Gaussiano σ=0.2,0.22387274066311744,0.5032839903727417,❌ Frágil
+Drift,Preguntas cortas (<10 palabras),0.4356154139381976,0.9792986102072978,✅ Robusto
+Drift,Preguntas largas (>15 palabras),0.39807921381774863,0.894914202690364,✅ Robusto
+Drift,Prior drift (50% extra),0.36007662835249044,0.8094813232751022,⚠ Degradación media
+Adversarial,Sinónimos (p=0.5),0.45124098855886097,1.014426163136077,✅ Robusto
+Composed,Cortas + sinónimos + ruido σ=0.1,0.21306755260243632,0.47899305549697363,❌ Frágil

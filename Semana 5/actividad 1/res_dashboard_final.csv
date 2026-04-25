@@ -1,0 +1,9 @@
+Bloque,Métrica,Valor,Veredicto
+1. Sesgo,Disparity Ratio (Longitud) — ANTES,0.499,❌ < 0.80
+1. Sesgo,Disparity Ratio (Longitud) — DESPUÉS (reweighting),0.629,⚠ mejora parcial
+2. Generalización,Gap train-val (F1 macro),0.388,OVERFITTING SEVERO
+2. Generalización,"F1 Macro CV (5-fold, ± std)",0.584 ± 0.015,✅ estable
+3. Robustez,RSI medio (todos los escenarios),0.810,⚠
+3. Robustez,RSI mínimo (peor escenario),0.479,❌ Frágil
+4. HP Optimization,HP más crítico,max_depth,Criticidad 1.000
+4. HP Optimization,F1 Macro baseline → optimizado,0.445 → 0.467,+2.22 pp
