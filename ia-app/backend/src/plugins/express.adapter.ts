@@ -5,7 +5,6 @@ import cors from "cors";
 import helmet from "helmet";
 import { buildAuthRouter } from "../auth/auth.factory";
 import { buildChatbotRouter } from "../chatbot/chatbot.factory";
-import { warmUpOllamaModels } from "../chatbot/infrastructure/services/llm/ollama.warmup";
 import { errorHandlerMiddleware } from "../auth/presentation/middlewares/error.handler.middleware";
 import { chatbotErrorHandlerMiddleware } from "../chatbot/presentation/middlewares/chatbot.error.handler.middleware";
 
@@ -45,7 +44,6 @@ export class ExpressServer extends Server {
   public start(): void {
     this.app.listen(this.port, () => {
       console.log(`Server on port ${this.port}`);
-      warmUpOllamaModels(); // pre-carga modelos en memoria, no bloquea
     });
   }
 }

@@ -1,9 +1,10 @@
 import { ProcessQueryUseCase, ProcessQueryInput, ProcessQueryOutput } from "../../domain/classes/process-query.use-case.class";
-import { LlmService } from "../../domain/classes/llm.service.class";
 import { QueryExecutor } from "../../domain/classes/query-executor.class";
 import { SchemaInspector } from "../../domain/classes/schema-inspector.class";
 import { ChatbotRepository } from "../../domain/classes/chatbot.repository.class";
 import type { SqlValidatorService } from "../../infrastructure/services/sql.validator.service";
+import { LlmCoderService } from "../../../plugins/llm/llm.coder.service";
+import { LlmAnalizerService } from "../../../plugins/llm/llm.analizer.service";
 
 const DEFAULT_SCHEMAS: string[] = (process.env.ERP_TARGET_SCHEMAS ?? "public")
   .split(",")
@@ -12,8 +13,8 @@ const DEFAULT_SCHEMAS: string[] = (process.env.ERP_TARGET_SCHEMAS ?? "public")
 
 export class ImpProcessQueryUseCase extends ProcessQueryUseCase {
   constructor(
-    private readonly sqlLlm: LlmService,
-    private readonly analysisLlm: LlmService,
+    private readonly sqlLlm: LlmCoderService,
+    private readonly analysisLlm: LlmAnalizerService,
     private readonly schemaInspector: SchemaInspector,
     private readonly queryExecutor: QueryExecutor,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

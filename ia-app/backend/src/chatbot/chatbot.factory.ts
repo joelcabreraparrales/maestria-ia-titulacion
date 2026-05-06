@@ -3,8 +3,6 @@ import { Pool } from "pg";
 import { PrismaClient } from "../../prisma/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
-import { LlmModel } from "./domain/enums/llm-model.enum";
-import { OllamaLlmFactory } from "./infrastructure/services/llm/ollama.llm.factory";
 import { SqlValidatorService } from "./infrastructure/services/sql.validator.service";
 import { PostgreQueryExecutor } from "./infrastructure/services/postgre.query.executor";
 import { PostgreSchemaInspector } from "./infrastructure/datasources/postgre.schema.inspector";
@@ -19,6 +17,9 @@ import { ChatbotService } from "./application/chatbot.service";
 
 import { ChatbotController } from "./presentation/controllers/chatbot.controller";
 import { createChatbotRouter } from "./presentation/routes/chatbot.router";
+import { QwenService } from "../plugins/llm/qwen.llm.service";
+import { QwenSqlCode } from "../plugins/llm/qwen.coder.service";
+import { QwenAnalizer } from "../plugins/llm/qwen.analizer.service";
 
 function buildChatbotPrismaClient(): PrismaClient {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -39,9 +40,15 @@ export function buildChatbotRouter(): Router {
   const db = buildChatbotPrismaClient();
   const erpPool = buildErpPool();
 
+  const llmProps = {
+    model: process.env.HF_IA_MODEL!,
+    apiKey: process.env.HF_API_KEY!,
+  };
+
   // — Infrastructure —
-  const sqlLlm = OllamaLlmFactory.create(LlmModel.SQL_CODER);
-  const analysisLlm = OllamaLlmFactory.create(LlmModel.QWEN_CODER);
+  const qwen = new QwenService(llmProps);
+  const sqlLlm = new QwenSqlCode(qwen);
+  const analysisLlm = new QwenAnalizer(qwen);
 
   const sqlValidator = new SqlValidatorService();
   const queryExecutor = new PostgreQueryExecutor(erpPool);
