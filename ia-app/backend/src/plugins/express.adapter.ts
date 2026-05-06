@@ -5,6 +5,7 @@ import cors from "cors";
 import helmet from "helmet";
 import { buildAuthRouter } from "../auth/auth.factory";
 import { buildChatbotRouter } from "../chatbot/chatbot.factory";
+import { buildProfileRouter } from "../profile/profile.factory";
 import { errorHandlerMiddleware } from "../auth/presentation/middlewares/error.handler.middleware";
 import { chatbotErrorHandlerMiddleware } from "../chatbot/presentation/middlewares/chatbot.error.handler.middleware";
 
@@ -36,6 +37,7 @@ export class ExpressServer extends Server {
 
   protected configRoutes(): void {
     this.app.use("/api/auth", buildAuthRouter());
+    this.app.use("/api/profile", buildProfileRouter());
     this.app.use("/api/chatbot", buildChatbotRouter());
     this.app.use(chatbotErrorHandlerMiddleware);
     this.app.use(errorHandlerMiddleware);

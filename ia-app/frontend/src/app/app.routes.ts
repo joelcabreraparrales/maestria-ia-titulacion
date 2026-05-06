@@ -4,6 +4,7 @@ import { AppLayoutComponent } from './shared/layout/app-layout/app-layout.compon
 import { SignInComponent } from './pages/auth-pages/sign-in/sign-in.component';
 import { SignUpComponent } from './pages/auth-pages/sign-up/sign-up.component';
 import { AiBiChatComponent } from './pages/ai-bi-chat/ai-bi-chat.component';
+import { ProfileComponent } from './pages/profile/profile.component';
 import { authGuard } from './shared/guards/auth.guard';
 import { publicGuard } from './shared/guards/public.guard';
 
@@ -22,6 +23,11 @@ export const routes: Routes = [
         path: 'ai-bi-chat',
         component: AiBiChatComponent,
         title: 'Chat BI con IA | IA App',
+      },
+      {
+        path: 'profile',
+        component: ProfileComponent,
+        title: 'Mi Perfil | IA App',
       },
     ]
   },

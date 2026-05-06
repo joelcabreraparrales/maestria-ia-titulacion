@@ -4,6 +4,7 @@ import { InactiveUserException } from "../../domain/exceptions/inactive.user.exc
 import { UserNotFoundException } from "../../domain/exceptions/user.not.found.exception";
 import { TooManySessionsException } from "../../domain/exceptions/too.many.sessions.exception";
 import { InvalidSessionException } from "../../domain/exceptions/invalid.session.exception";
+import { ProfileNotFoundException } from "../../../profile/domain/exceptions/profile-not-found.exception";
 
 export function errorHandlerMiddleware(
   err: Error,
@@ -29,6 +30,11 @@ export function errorHandlerMiddleware(
 
   if (err instanceof InvalidSessionException) {
     res.status(401).json({ error: err.message, statusCode: 401 });
+    return;
+  }
+
+  if (err instanceof ProfileNotFoundException) {
+    res.status(404).json({ error: err.message, statusCode: 404 });
     return;
   }
 
