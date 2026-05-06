@@ -14,7 +14,7 @@ export class QwenSqlCode extends LlmCoderService {
     const relationships = this.buildRelationships(params.schema);
     const schemaJson = JSON.stringify(params.schema, null, 2);
 
-    const prompt = `
+    const systemPrompt = `
       ### ROLE:
       You are a senior PostgreSQL data analyst specializing in business intelligence and analytical queries for dashboards and statistical charts.
 
@@ -115,25 +115,19 @@ export class QwenSqlCode extends LlmCoderService {
       GROUP BY DATE_TRUNC('month', soh.orderdate), pc.name
       ORDER BY sales_month, total_revenue DESC
       LIMIT 1000
-
-      ${
-        params.conversationHistory.length > 0
-          ? `### CONVERSATION HISTORY (context for follow-up questions):
-      ${params.conversationHistory.map((m) => `${m.role.toUpperCase()}: ${m.content}`).join("\n        ")}
-      `
-          : ""
-      }
-      ### USER QUESTION:
-      ${params.userQuery}
-
-      ### RESPONSE (SQL ONLY):
     `;
 
-    writeFileSync("tmp/prompt_debug_coder_sql.txt", prompt, "utf-8");
+    const userPrompt =
+      (params.conversationHistory.length > 0
+        ? `### CONVERSATION HISTORY (context for follow-up questions):\n` +
+          params.conversationHistory.map((m) => `${m.role.toUpperCase()}: ${m.content}`).join("\n") +
+          "\n\n"
+        : "") +
+      `### USER QUESTION:\n${params.userQuery}\n\n### RESPONSE (SQL ONLY):`;
 
-    const content =
-      "Eres un experto en SQL y visualización de datos. Responde solo con el código o JSON solicitado, sin explicaciones.";
-    const raw = await this.llm.generateContent(prompt, content);
+    writeFileSync("tmp/prompt_debug_coder_sql.txt", systemPrompt + "\n\n" + userPrompt, "utf-8");
+
+    const raw = await this.llm.generateContent(systemPrompt, userPrompt);
 
     return this.extractSql(raw);
   }

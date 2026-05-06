@@ -11,13 +11,13 @@ export class QwenService extends LlmService {
     this.model = new InferenceClient(this.props.apiKey);
   }
 
-  public async generateContent(prompt: string, content: string): Promise<string> {
+  public async generateContent(systemPrompt: string, userPrompt: string): Promise<string> {
     const { model } = this.props;
     const response = await this.model.chatCompletion({
       model,
       messages: [
-        { role: "system", content },
-        { role: "user", content: prompt },
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
       ],
       max_tokens: 8192,
       temperature: 0.1,

@@ -176,14 +176,9 @@ export class QwenAnalizer extends LlmAnalizerService {
       `Muestra de datos (primeras 10 filas):\n${JSON.stringify(params.dataSample.slice(0, 10), null, 2)}\n\n` +
       `Responde SOLO con JSON válido siguiendo la estructura AnalysisResult definida arriba.`;
 
-    const fullPrompt = systemPrompt + "\n\n" + dataPrompt;
+    writeFileSync("tmp/prompt_debug_graphig.txt", systemPrompt + "\n\n" + dataPrompt, "utf-8");
 
-    writeFileSync("tmp/prompt_debug_graphig.txt", fullPrompt, "utf-8");
-
-    const content = `Eres un motor de visualización de datos.
-                Tu salida debe ser exclusivamente JSON.
-                Usa estos colores: ${this.CHART_PALETTE.join(", ")}.`;
-    const raw = await this.llm.generateContent(fullPrompt, content);
+    const raw = await this.llm.generateContent(systemPrompt, dataPrompt);
 
     writeFileSync("tmp/response-second-llm.json", raw, "utf-8");
 
