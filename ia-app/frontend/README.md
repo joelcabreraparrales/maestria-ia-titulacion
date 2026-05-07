@@ -1,120 +1,125 @@
-# Free Angular Tailwind Admin Dashboard Template - TailAdmin Angular
+# Lumina BI — Frontend
 
-TailAdmin Angular is a **free and open-source admin dashboard template** built with **Angular** and **Tailwind CSS**. It provides developers with everything they need to create a feature-rich, data-driven **back-end, dashboard, or admin panel** for any type of web project.
+Interfaz de usuario de **Lumina BI**, plataforma de inteligencia de negocios conversacional con IA. Permite a los usuarios autenticarse, realizar consultas en lenguaje natural sobre datos ERP y visualizar resultados con gráficos y análisis generados por el modelo LLM.
 
-![TailAdmin Angular Admin Dashboard](./angular-tailwind.png)
+## Stack
 
-
-With TailAdmin Angular, you’ll get access to a complete set of **dashboard UI components, elements, and ready-to-use pages** to build a modern, high-quality admin panel. Whether it’s for a **complex web application** or a **lightweight project**, TailAdmin Angular is designed to speed up development of any kind of dashboards and admin panels.
-
-TailAdmin leverages the **powerful ecosystem of Angular 20+**, along with **TypeScript** and the utility-first styling of **Tailwind CSS v4**. Combined, they make TailAdmin Angular a perfect foundation to launch your dashboard or admin panel quickly and effectively.
-
-TailAdmin Angular comes with essential UI components and layouts for building **feature-rich, data-driven dashboards** and **admin panels**. TailAdmin Angular is built on:
-
-* **Angular 20+**
-* **TypeScript**
-* **Tailwind CSS v4**
-
-### Quick Links
-
-- ✨ [Visit Website](https://tailadmin.com/)
-- 🚀 [Angular Demo](https://angular-demo.tailadmin.com/)
-- 📄 [Documentation](https://tailadmin.com/docs)
-- ⬇️ [Download](https://tailadmin.com/download)
-- 🖌️ [Figma Design File (Free Edition)](https://www.figma.com/community/file/1463141366275764364)
-- ⚡ [Get PRO Version](https://tailadmin.com/pricing)
----
-
-## Feature Comparison
-
-| Feature | Free Version | Pro Version 🌟 |
-|---------|--------------|----------------|
-| **Dashboards** | 1 Unique Dashboard | 7 Unique Dashboards: Analytics, Ecommerce, Marketing, SaaS, CRM, Stocks, Logistics and more (more coming soon) 📈 |
-| **UI Elements and Components** | 100+ UI elements and components | Included in 500+ components and UI elements |
-| **Design Files** | Basic Figma design files | Complete Figma design system file |
-| **Support** | Community support| Email support |
-
-### Other Versions
-
-- [Next.js Version](https://github.com/TailAdmin/free-nextjs-admin-dashboard)
-- [React.js Version](https://github.com/TailAdmin/free-react-tailwind-admin-dashboard)
-- [Vue.js Version](https://github.com/TailAdmin/vue-tailwind-admin-dashboard)
-- [Angular Version](https://github.com/TailAdmin/free-angular-tailwind-dashboard)
-- [Laravel Version](https://github.com/TailAdmin/tailadmin-laravel)
-
-## Installation
-
-### Prerequisites
-
-Before you start, make sure you have:
-
-* **Node.js 20.x or later** (Node.js 20.x recommended)
-* **Angular CLI** installed globally:
-
-```bash
-npm install -g @angular/cli
-```
+| Capa | Tecnología |
+|------|-----------|
+| Framework | Angular 21 (standalone components) |
+| Estilos | Tailwind CSS v4 |
+| Lenguaje | TypeScript 5.9 |
+| Gráficos | ApexCharts (`ng-apexcharts`) |
+| HTTP | Angular `HttpClient` + interceptores JWT |
+| Estado | `BehaviorSubject` (RxJS) + Signals |
+| Routing | Angular Router con guards funcionales |
 
 ---
 
-### Cloning the Repository
+## Requisitos previos
 
-Clone the repository:
-
-```bash
-git clone https://github.com/TailAdmin/free-angular-admin-dashboard.git
-```
+- **Node.js** ≥ 20
+- **Angular CLI** ≥ 21 (`npm install -g @angular/cli`)
+- Backend de Lumina BI corriendo (ver `backend/README.md`)
 
 ---
 
-### Install Dependencies
+## Instalación y puesta en marcha
 
 ```bash
+# 1. Instalar dependencias
 npm install
-# or
-yarn install
-```
 
----
-
-### Start Development Server
-
-```bash
+# 2. Iniciar en modo desarrollo
 npm start
 ```
 
-Then open:
-👉 `http://localhost:4200`
+La app queda disponible en `http://localhost:4200`.
+
+Para generar el bundle de producción:
+
+```bash
+npm run build
+```
+
+El resultado se genera en `dist/ng-tailadmin/`.
 
 ---
 
-## Angualr.js Tailwind Components
+## Configuración del entorno
 
-TailAdmin Angular ships with a rich set of **ready-to-use dashboard features**:
+La URL base de la API se define en los archivos de entorno:
 
-* **Ecommerce Dashboard** with essential elements
-* Modern, accessible **sidebar navigation**
-* **Data visualization** with charts and graphs
-* **User profile management** and a **custom 404 page**
-* **Tables** and **charts** (line, bar, etc.)
-* **Authentication forms** and reusable input components
-* **UI elements**: alerts, dropdowns, modals, buttons, and more
-* Built-in **Dark Mode** 🕶️
-* and many more
+| Archivo | Uso | Valor por defecto |
+|---------|-----|------------------|
+| `src/environments/environment.ts` | Desarrollo | `http://localhost:3000/api` |
+| `src/environments/environment.prod.ts` | Producción | `/api` (relativa, asume mismo origen) |
 
+Para apuntar a un backend diferente edita `apiUrl` en el archivo correspondiente antes de compilar.
 
-## Changelog
+---
 
-### v1.0.3 (2026-03-15)
+## Rutas de la aplicación
 
-- **update**: update Angular dependencies to version 21.2.x.
+| Ruta | Componente | Guard | Descripción |
+|------|-----------|-------|-------------|
+| `/` | — | `authGuard` | Redirige a `/ai-bi-chat` |
+| `/ai-bi-chat` | `AiBiChatComponent` | `authGuard` | Chatbot BI principal |
+| `/profile` | `ProfileComponent` | `authGuard` | Perfil del usuario autenticado |
+| `/signin` | `SignInComponent` | `publicGuard` | Inicio de sesión |
+| `/signup` | `SignUpComponent` | `publicGuard` | Registro de nuevo usuario |
+| `/**` | `NotFoundComponent` | — | Página 404 |
 
-### v1.0.2 (2025-12-30)
+- **`authGuard`** — redirige a `/signin` si no hay sesión activa.
+- **`publicGuard`** — redirige a `/` si ya hay sesión iniciada.
 
-- **Upgrade**: Successfully upgraded project to **Angular 21**.
-- **New Feature**: Implementing **Dynamic API Keys** management.
-  - Added functionalities to **Add**, **Edit**, **Delete**, and **Regenerate** API Keys.
-- **Enhancement**: Integrated **Flatpickr** date range picker in `StatisticsChartComponent`.
-- **Bug Fix**: Resolved `NG0100` ExpressionChangedAfterItHasBeenCheckedError in `PieChartTwoComponent`.
-- **Bug Fix**: Fixed `NG8113` warning in `AddApiKeyModalComponent` by removing unused imports.
-- **Cleanup**: Removed unused imports and optimized code across various components.
+---
+
+## Estructura del proyecto
+
+```
+src/app/
+├── pages/
+│   ├── ai-bi-chat/          # Módulo principal del chatbot BI
+│   ├── auth-pages/
+│   │   ├── sign-in/         # Página de login
+│   │   └── sign-up/         # Página de registro
+│   └── profile/             # Página de perfil de usuario
+├── shared/
+│   ├── guards/              # authGuard, publicGuard
+│   ├── interceptors/        # JWT interceptor (adjunta Bearer token)
+│   ├── layout/              # AppLayout, AuthPageLayout, Sidebar, Header
+│   └── services/
+│       ├── auth.service.ts          # Login, logout, register, refresh
+│       ├── token-storage.service.ts # Gestión de JWT en localStorage
+│       ├── profile.service.ts       # Carga y actualización de perfil
+│       └── chatbot-bi.service.ts    # Consultas al chatbot (REST + SSE)
+└── environments/
+    ├── environment.ts        # Desarrollo
+    └── environment.prod.ts   # Producción
+```
+
+---
+
+## Servicios principales
+
+### `AuthService`
+Gestiona el ciclo de autenticación completo:
+- `login(username, password)` — obtiene JWT y persiste sesión
+- `logout()` — cierra sesión en backend y limpia almacenamiento local (siempre, incluso si el backend falla)
+- `register(data)` — registra un nuevo usuario vía `POST /api/auth/signup`
+- `refresh()` — renueva el token JWT antes de que expire
+
+### `TokenStorageService`
+Persiste y lee la sesión desde `localStorage`:
+- Token JWT, código de sesión y datos básicos del usuario (`firstName`, `firstLastname`, `roles`)
+- `isAuthenticated()` — verifica token presente y no expirado (decodifica `exp` del payload)
+
+### `ChatbotBiService`
+Comunica con el API del chatbot:
+- Consultas estándar (`POST /api/chatbot/query`) — respuesta JSON completa
+- Streaming (`POST /api/chatbot/query-stream`) — eventos SSE en tiempo real
+- Gestión de conversaciones (listar, obtener historial, eliminar)
+
+### `ProfileService`
+Carga y actualiza el perfil del usuario autenticado con caché reactivo via `BehaviorSubject`.
