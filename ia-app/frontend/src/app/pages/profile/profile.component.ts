@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { PageBreadcrumbComponent } from '../../shared/components/common/page-breadcrumb/page-breadcrumb.component';
 import { UserMetaCardComponent } from '../../shared/components/user-profile/user-meta-card/user-meta-card.component';
 import { UserInfoCardComponent } from '../../shared/components/user-profile/user-info-card/user-info-card.component';
@@ -8,6 +9,7 @@ import { ProfileService } from '../../shared/services/profile.service';
 @Component({
   selector: 'app-profile',
   imports: [
+    CommonModule,
     PageBreadcrumbComponent,
     UserMetaCardComponent,
     UserInfoCardComponent,
@@ -17,11 +19,15 @@ import { ProfileService } from '../../shared/services/profile.service';
   styles: ``
 })
 export class ProfileComponent implements OnInit {
+  readonly loadError = signal<string | null>(null);
+
   constructor(private readonly profileService: ProfileService) {}
 
   ngOnInit(): void {
     if (!this.profileService.getSnapshot()) {
-      this.profileService.loadProfile().subscribe();
+      this.profileService.loadProfile().subscribe({
+        error: () => this.loadError.set('No se pudo cargar el perfil. Por favor, recarga la página.'),
+      });
     }
   }
 }

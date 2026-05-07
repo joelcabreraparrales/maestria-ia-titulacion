@@ -4,6 +4,7 @@ import { LlmErrorException } from "../../domain/exceptions/llm-error.exception";
 import { QueryExecutionException } from "../../domain/exceptions/query-execution-error.exception";
 import { SchemaNotFoundException } from "../../domain/exceptions/schema-not-found.exception";
 import { ConversationNotFoundException } from "../../domain/exceptions/conversation-not-found.exception";
+import { UnauthorizedConversationAccessException } from "../../domain/exceptions/unauthorized-conversation.exception";
 
 export function chatbotErrorHandlerMiddleware(
   err: Error,
@@ -33,6 +34,11 @@ export function chatbotErrorHandlerMiddleware(
 
   if (err instanceof ConversationNotFoundException) {
     res.status(404).json({ error: err.message, statusCode: 404 });
+    return;
+  }
+
+  if (err instanceof UnauthorizedConversationAccessException) {
+    res.status(403).json({ error: err.message, statusCode: 403 });
     return;
   }
 

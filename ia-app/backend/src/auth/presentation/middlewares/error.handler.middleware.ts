@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { InvalidCredentialsException } from "../../domain/exceptions/invalid.credential.exception";
 import { InactiveUserException } from "../../domain/exceptions/inactive.user.exception";
 import { UserNotFoundException } from "../../domain/exceptions/user.not.found.exception";
+import { UserAlreadyExistsException } from "../../domain/exceptions/user.already.exists.exception";
 import { TooManySessionsException } from "../../domain/exceptions/too.many.sessions.exception";
 import { InvalidSessionException } from "../../domain/exceptions/invalid.session.exception";
 import { ProfileNotFoundException } from "../../../profile/domain/exceptions/profile-not-found.exception";
@@ -15,6 +16,11 @@ export function errorHandlerMiddleware(
   // S-2: UserNotFoundException unificada a 401 para evitar enumeración de usuarios
   if (err instanceof UserNotFoundException || err instanceof InvalidCredentialsException) {
     res.status(401).json({ error: "Credenciales inválidas", statusCode: 401 });
+    return;
+  }
+
+  if (err instanceof UserAlreadyExistsException) {
+    res.status(409).json({ error: err.message, statusCode: 409 });
     return;
   }
 

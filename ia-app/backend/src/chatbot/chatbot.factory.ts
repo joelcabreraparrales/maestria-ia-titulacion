@@ -2,6 +2,7 @@ import { Router } from "express";
 import { Pool } from "pg";
 import { PrismaClient } from "../../prisma/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { EnvAdapter } from "../plugins/env/env.adapter";
 
 import { SqlValidatorService } from "./infrastructure/services/sql.validator.service";
 import { PostgreQueryExecutor } from "./infrastructure/services/postgre.query.executor";
@@ -22,27 +23,30 @@ import { QwenSqlCode } from "../plugins/llm/qwen.coder.service";
 import { QwenAnalizer } from "../plugins/llm/qwen.analizer.service";
 
 function buildChatbotPrismaClient(): PrismaClient {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const env = new EnvAdapter();
+  const pool = new Pool({ connectionString: env.get("DATABASE_URL") });
   const adapter = new PrismaPg(pool);
   return new PrismaClient({ adapter });
 }
 
 function buildErpPool(): Pool {
-  const connectionString = process.env.ERP_DATABASE_URL ?? process.env.DATABASE_URL;
+  const env = new EnvAdapter();
   return new Pool({
-    connectionString,
-    statement_timeout: Number(process.env.ERP_QUERY_TIMEOUT_MS ?? "30000"),
+    connectionString: env.get("ERP_DATABASE_URL"),
+    statement_timeout: env.getInt("ERP_QUERY_TIMEOUT_MS", 30000),
   });
 }
 
 export function buildChatbotRouter(): Router {
+  const env = new EnvAdapter();
+
   // — Conexiones —
   const db = buildChatbotPrismaClient();
   const erpPool = buildErpPool();
 
   const llmProps = {
-    model: process.env.HF_IA_MODEL!,
-    apiKey: process.env.HF_API_KEY!,
+    model: env.get("HF_IA_MODEL"),
+    apiKey: env.get("HF_API_KEY"),
   };
 
   // — Infrastructure —

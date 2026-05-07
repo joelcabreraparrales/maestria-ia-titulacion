@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { BehaviorSubject, Observable, finalize, tap } from 'rxjs';
 import { TokenStorageService, StoredUser } from './token-storage.service';
 import { environment } from '../../../environments/environment';
 
@@ -16,6 +16,16 @@ interface LoginResponse {
 interface RefreshResponse {
   token: string;
   sessionCode: string;
+}
+
+export interface RegisterRequest {
+  firstName: string;
+  firstLastname: string;
+  email: string;
+  dni: string;
+  dateBirth: string;
+  username: string;
+  password: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -50,12 +60,16 @@ export class AuthService {
   logout(): Observable<unknown> {
     const sessionCode = this.tokenStorage.getSessionCode();
     return this.http.post(`${this.baseUrl}/logout`, { sessionCode }).pipe(
-      tap(() => {
+      finalize(() => {
         this.tokenStorage.clear();
         this._currentUser$.next(null);
         this.router.navigate(['/signin']);
       }),
     );
+  }
+
+  register(data: RegisterRequest): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.baseUrl}/signup`, data);
   }
 
   refresh(): Observable<RefreshResponse> {

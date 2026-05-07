@@ -7,7 +7,7 @@ export class ImpGetConversationUseCase extends GetConversationUseCase {
     super();
   }
 
-  public async get(conversationCode: string): Promise<ConversationEntity> {
-    return this.repository.getConversationWithMessages(conversationCode);
+  public async get(conversationCode: string, credentialId: number): Promise<ConversationEntity> {
+    return this.repository.getConversationWithMessages(conversationCode, credentialId);
   }
 }

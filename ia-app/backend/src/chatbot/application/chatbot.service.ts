@@ -22,15 +22,15 @@ export class ChatbotService {
     return this.streamQueryUseCase.process(input, callbacks);
   }
 
-  public async getConversationHistory(conversationCode: string): Promise<ConversationEntity> {
-    return this.getConversation.get(conversationCode);
+  public async getConversationHistory(conversationCode: string, credentialId: number): Promise<ConversationEntity> {
+    return this.getConversation.get(conversationCode, credentialId);
   }
 
   public async listUserConversations(credentialId: number): Promise<ConversationEntity[]> {
     return this.listConversations.list(credentialId);
   }
 
-  public async deleteConversation(conversationCode: string): Promise<void> {
-    return this.repository.deleteConversation(conversationCode);
+  public async deleteConversation(conversationCode: string, credentialId: number): Promise<void> {
+    return this.repository.deleteConversation(conversationCode, credentialId);
   }
 }

@@ -32,6 +32,6 @@ export class UserDropdownComponent {
 
   onSignOut(): void {
     this.closeDropdown();
-    this.authService.logout().subscribe();
+    this.authService.logout().subscribe({ error: () => {} });
   }
 }

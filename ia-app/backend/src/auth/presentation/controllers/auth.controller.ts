@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { AuthenticationService } from "../../application/authentication.service";
 import { LoginRequestDTO, LoginResponseDTO } from "../dtos/login.dto";
 import { SessionCodeRequestDTO, RefreshResponseDTO } from "../dtos/session.dto";
+import { RegisterRequestDTO } from "../dtos/register.dto";
 
 export class AuthController {
   constructor(private readonly authService: AuthenticationService) {}
@@ -56,6 +57,27 @@ export class AuthController {
         sessionCode: result.sessionCode,
       };
       res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { firstName, firstLastname, email, dni, dateBirth, username, password } =
+        req.body as RegisterRequestDTO;
+
+      await this.authService.register({
+        firstName,
+        firstLastname,
+        email,
+        dni,
+        dateBirth: new Date(dateBirth),
+        username,
+        password,
+      });
+
+      res.status(201).json({ message: "Usuario registrado correctamente" });
     } catch (error) {
       next(error);
     }

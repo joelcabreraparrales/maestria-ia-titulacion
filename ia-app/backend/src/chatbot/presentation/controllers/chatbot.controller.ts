@@ -48,8 +48,6 @@ export class ChatbotController {
 
       res.status(200).json(response);
     } catch (error) {
-      console.log(error);
-      
       next(error);
     }
   };
@@ -80,7 +78,8 @@ export class ChatbotController {
         return;
       }
 
-      const conversation = await this.chatbotService.getConversationHistory(id);
+      const { credentialId } = this.extractPayload(res.locals.token as string);
+      const conversation = await this.chatbotService.getConversationHistory(id, credentialId);
 
       const response: ConversationDetailDTO = {
         conversationCode: conversation.getCode(),
@@ -169,7 +168,8 @@ export class ChatbotController {
         return;
       }
 
-      await this.chatbotService.deleteConversation(id);
+      const { credentialId } = this.extractPayload(res.locals.token as string);
+      await this.chatbotService.deleteConversation(id, credentialId);
       res.status(200).json({ message: "Conversación eliminada correctamente" });
     } catch (error) {
       next(error);

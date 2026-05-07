@@ -2,6 +2,7 @@ import { Router } from "express";
 import { Pool } from "pg";
 import { PrismaClient } from "../../prisma/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { EnvAdapter } from "../plugins/env/env.adapter";
 
 import { PostgreProfileDatasource } from "./infrastructure/datasources/postgre.profile.datasource";
 import { ImpProfileRepository } from "./infrastructure/repositories/imp.profile.repository";
@@ -12,7 +13,8 @@ import { ProfileController } from "./presentation/controllers/profile.controller
 import { createProfileRouter } from "./presentation/routes/profile.router";
 
 function buildPrismaClient(): PrismaClient {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const env = new EnvAdapter();
+  const pool = new Pool({ connectionString: env.get("DATABASE_URL") });
   const adapter = new PrismaPg(pool);
   return new PrismaClient({ adapter });
 }

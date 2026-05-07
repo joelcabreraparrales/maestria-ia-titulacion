@@ -2,6 +2,7 @@ import { Router } from "express";
 import { Pool } from "pg";
 import { PrismaClient } from "../../prisma/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { EnvAdapter } from "../plugins/env/env.adapter";
 
 import { PostgreAuthDatasource } from "./infrastructure/datasources/postgre.auth.datasource";
 import { PostgreSessionDatasource } from "./infrastructure/datasources/postgre.session.datasource";
@@ -13,6 +14,7 @@ import { ImpAuthenticateUserUseCase } from "./application/imp.authenticate.user.
 import { ImpGenerateSessionUseCase } from "./application/imp.generate.session.use.case";
 import { ImpLogoutUseCase } from "./application/imp.logout.use.case";
 import { ImpRefreshSessionUseCase } from "./application/imp.refresh.session.use.case";
+import { ImpRegisterUserUseCase } from "./application/imp.register.user.use.case";
 import { AuthenticationService } from "./application/authentication.service";
 
 import { BcryptHashService } from "../plugins/bcrypt/bcrypt.hash.service";
@@ -24,12 +26,14 @@ import { AuthController } from "./presentation/controllers/auth.controller";
 import { createAuthRouter } from "./presentation/routes/auth.router";
 
 function buildPrismaClient(): PrismaClient {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const env = new EnvAdapter();
+  const pool = new Pool({ connectionString: env.get("DATABASE_URL") });
   const adapter = new PrismaPg(pool);
   return new PrismaClient({ adapter });
 }
 
 export function buildAuthRouter(): Router {
+  const env = new EnvAdapter();
   const db = buildPrismaClient();
 
   const authDatasource = new PostgreAuthDatasource(db);
@@ -41,8 +45,8 @@ export function buildAuthRouter(): Router {
 
   const hashService = new BcryptHashService();
   const tokenService = new JwtTokenService(
-    process.env.JWT_SECRET!,
-    process.env.JWT_EXPIRES_IN ?? "8h",
+    env.get("JWT_SECRET"),
+    env.getOptional("JWT_EXPIRES_IN") ?? "8h",
   );
   const codeGenerator = new UuidCodeGeneratorService();
   const dateManager = new ImpDateManager();
@@ -51,8 +55,9 @@ export function buildAuthRouter(): Router {
   const generateSessionUseCase = new ImpGenerateSessionUseCase(tokenService, sessionRepository, codeGenerator, dateManager);
   const logoutUseCase = new ImpLogoutUseCase(sessionRepository, logService);
   const refreshUseCase = new ImpRefreshSessionUseCase(sessionRepository, tokenService, dateManager, logService);
+  const registerUseCase = new ImpRegisterUserUseCase(authRepository, hashService);
 
-  const authService = new AuthenticationService(authenticateUserUseCase, generateSessionUseCase, logoutUseCase, refreshUseCase);
+  const authService = new AuthenticationService(authenticateUserUseCase, generateSessionUseCase, logoutUseCase, refreshUseCase, registerUseCase);
   const authController = new AuthController(authService);
 
   return createAuthRouter(authController);

@@ -3,6 +3,7 @@ import { ChatbotRepository } from "../../domain/classes/chatbot.repository.class
 import { ConversationEntity } from "../../domain/entities/conversation.entity";
 import { MessageEntity } from "../../domain/entities/message.entity";
 import { ConversationNotFoundException } from "../../domain/exceptions/conversation-not-found.exception";
+import { UnauthorizedConversationAccessException } from "../../domain/exceptions/unauthorized-conversation.exception";
 import { SaveQueryResultParams, ConversationProps, MessageProps } from "../../domain/interfaces/conversation.interface";
 
 export class ImpChatbotRepository extends ChatbotRepository {
@@ -18,7 +19,11 @@ export class ImpChatbotRepository extends ChatbotRepository {
     if (conversationCode) {
       const raw = await this.datasource.getConversation(conversationCode);
       if (!raw) throw new ConversationNotFoundException();
-      return this.mapConversation(raw);
+      const conversation = this.mapConversation(raw);
+      if (conversation.getCredentialId() !== credentialId) {
+        throw new UnauthorizedConversationAccessException();
+      }
+      return conversation;
     }
     const raw = await this.datasource.createConversation({ credentialId, username });
     return this.mapConversation(raw);
@@ -28,11 +33,15 @@ export class ImpChatbotRepository extends ChatbotRepository {
     return this.datasource.updateConversationTitle(conversationCode, title);
   }
 
-  public async getConversationWithMessages(conversationCode: string): Promise<ConversationEntity> {
+  public async getConversationWithMessages(conversationCode: string, credentialId: number): Promise<ConversationEntity> {
     const raw = await this.datasource.getConversation(conversationCode);
     if (!raw) throw new ConversationNotFoundException();
 
     const conversation = this.mapConversation(raw);
+    if (conversation.getCredentialId() !== credentialId) {
+      throw new UnauthorizedConversationAccessException();
+    }
+
     const messagesRaw = await this.datasource.getMessagesByConversation(conversation.getId());
 
     return new ConversationEntity(
@@ -54,9 +63,13 @@ export class ImpChatbotRepository extends ChatbotRepository {
     return rows.map((r) => this.mapConversation(r));
   }
 
-  public async deleteConversation(conversationCode: string): Promise<void> {
+  public async deleteConversation(conversationCode: string, credentialId: number): Promise<void> {
     const raw = await this.datasource.getConversation(conversationCode);
     if (!raw) throw new ConversationNotFoundException();
+    const conversation = this.mapConversation(raw);
+    if (conversation.getCredentialId() !== credentialId) {
+      throw new UnauthorizedConversationAccessException();
+    }
     return this.datasource.softDeleteConversation(conversationCode);
   }
 
