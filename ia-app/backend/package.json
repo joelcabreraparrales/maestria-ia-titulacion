@@ -8,6 +8,7 @@
     "build": "tsc",
     "prisma:import_db": "npx prisma db pull",
     "prisma:generate_client": "npx prisma generate",
+    "prisma:migrate-prod": "npx prisma migrate deploy",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
