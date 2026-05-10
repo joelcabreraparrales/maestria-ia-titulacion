@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node dist/src",
+    "start": "npm run prisma:generate_client && npm run build && node dist/src",
     "start:dev": "nodemon",
     "build": "tsc",
     "prisma:import_db": "npx prisma db pull",
