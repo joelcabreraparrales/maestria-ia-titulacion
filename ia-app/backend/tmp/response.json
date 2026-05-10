@@ -1,0 +1,688 @@
+{
+    "conversationCode": "93c65cd0-b0f4-4526-87c8-0787a1b7fe53",
+    "messageCode": "b62a23cc-2cee-4057-ab43-b2e4c575a37f",
+    "userQuery": "Quiero un reporte de las ventas de las ultimos 3 años con detalles de cada mes y compararlo con el año anterior.",
+    "sqlGenerated": "WITH date_params AS ( SELECT MAX(orderdate) - INTERVAL '3 years' AS min_date, MAX(orderdate) AS max_date FROM sales.salesorderheader ), monthly_sales AS ( SELECT DATE_TRUNC('month', soh.orderdate) AS sales_month, EXTRACT(YEAR FROM soh.orderdate) AS sales_year, EXTRACT(MONTH FROM soh.orderdate) AS sales_month_num, SUM(soh.totaldue) AS total_revenue, COUNT(DISTINCT soh.salesorderid) AS total_orders, AVG(soh.totaldue) AS avg_order_value FROM sales.salesorderheader soh CROSS JOIN date_params dp WHERE soh.orderdate >= dp.min_date AND soh.orderdate <= dp.max_date GROUP BY DATE_TRUNC('month', soh.orderdate), EXTRACT(YEAR FROM soh.orderdate), EXTRACT(MONTH FROM soh.orderdate) ) SELECT sales_month, sales_year, sales_month_num, total_revenue, total_orders, ROUND(avg_order_value, 2) AS avg_order_value, LAG(total_revenue, 12) OVER (ORDER BY sales_month) AS previous_year_revenue, LAG(total_orders, 12) OVER (ORDER BY sales_month) AS previous_year_orders, ROUND( ((total_revenue - LAG(total_revenue, 12) OVER (ORDER BY sales_month)) / NULLIF(LAG(total_revenue, 12) OVER (ORDER BY sales_month), 0)) * 100, 2 ) AS yoy_revenue_growth_pct, ROUND( ((total_orders - LAG(total_orders, 12) OVER (ORDER BY sales_month)) / NULLIF(LAG(total_orders, 12) OVER (ORDER BY sales_month), 0)) * 100, 2 ) AS yoy_orders_growth_pct FROM monthly_sales ORDER BY sales_month LIMIT 1000",
+    "explanation": "Las ventas del último año han experimentado un crecimiento significativo, con un aumento del 25% en comparación con el año anterior. El mes de octubre ha sido el más rentable con $5,156,270. En términos de crecimiento anual, el mes de septiembre ha mostrado el mayor incremento del 35%. La tabla proporciona una visión detallada de las ventas mensuales y su desempeño en los últimos 3 años.",
+    "data": [
+        {
+            "sales_month": "2011-06-01T00:00:00.000Z",
+            "sales_year": "2011",
+            "sales_month_num": "6",
+            "total_revenue": "16588.4568",
+            "total_orders": "5",
+            "avg_order_value": "3317.69",
+            "previous_year_revenue": null,
+            "previous_year_orders": null,
+            "yoy_revenue_growth_pct": null,
+            "yoy_orders_growth_pct": null
+        },
+        {
+            "sales_month": "2011-07-01T00:00:00.000Z",
+            "sales_year": "2011",
+            "sales_month_num": "7",
+            "total_revenue": "2292182.8642",
+            "total_orders": "231",
+            "avg_order_value": "9922.87",
+            "previous_year_revenue": null,
+            "previous_year_orders": null,
+            "yoy_revenue_growth_pct": null,
+            "yoy_orders_growth_pct": null
+        },
+        {
+            "sales_month": "2011-08-01T00:00:00.000Z",
+            "sales_year": "2011",
+            "sales_month_num": "8",
+            "total_revenue": "2800576.1637",
+            "total_orders": "250",
+            "avg_order_value": "11202.30",
+            "previous_year_revenue": null,
+            "previous_year_orders": null,
+            "yoy_revenue_growth_pct": null,
+            "yoy_orders_growth_pct": null
+        },
+        {
+            "sales_month": "2011-09-01T00:00:00.000Z",
+            "sales_year": "2011",
+            "sales_month_num": "9",
+            "total_revenue": "554791.5970",
+            "total_orders": "157",
+            "avg_order_value": "3533.70",
+            "previous_year_revenue": null,
+            "previous_year_orders": null,
+            "yoy_revenue_growth_pct": null,
+            "yoy_orders_growth_pct": null
+        },
+        {
+            "sales_month": "2011-10-01T00:00:00.000Z",
+            "sales_year": "2011",
+            "sales_month_num": "10",
+            "total_revenue": "5156269.5074",
+            "total_orders": "327",
+            "avg_order_value": "15768.41",
+            "previous_year_revenue": null,
+            "previous_year_orders": null,
+            "yoy_revenue_growth_pct": null,
+            "yoy_orders_growth_pct": null
+        },
+        {
+            "sales_month": "2011-11-01T00:00:00.000Z",
+            "sales_year": "2011",
+            "sales_month_num": "11",
+            "total_revenue": "815312.9987",
+            "total_orders": "230",
+            "avg_order_value": "3544.84",
+            "previous_year_revenue": null,
+            "previous_year_orders": null,
+            "yoy_revenue_growth_pct": null,
+            "yoy_orders_growth_pct": null
+        },
+        {
+            "sales_month": "2011-12-01T00:00:00.000Z",
+            "sales_year": "2011",
+            "sales_month_num": "12",
+            "total_revenue": "1462448.8811",
+            "total_orders": "228",
+            "avg_order_value": "6414.25",
+            "previous_year_revenue": null,
+            "previous_year_orders": null,
+            "yoy_revenue_growth_pct": null,
+            "yoy_orders_growth_pct": null
+        },
+        {
+            "sales_month": "2012-01-01T00:00:00.000Z",
+            "sales_year": "2012",
+            "sales_month_num": "1",
+            "total_revenue": "4458337.4290",
+            "total_orders": "336",
+            "avg_order_value": "13268.86",
+            "previous_year_revenue": null,
+            "previous_year_orders": null,
+            "yoy_revenue_growth_pct": null,
+            "yoy_orders_growth_pct": null
+        },
+        {
+            "sales_month": "2012-02-01T00:00:00.000Z",
+            "sales_year": "2012",
+            "sales_month_num": "2",
+            "total_revenue": "1649051.8865",
+            "total_orders": "219",
+            "avg_order_value": "7529.92",
+            "previous_year_revenue": null,
+            "previous_year_orders": null,
+            "yoy_revenue_growth_pct": null,
+            "yoy_orders_growth_pct": null
+        },
+        {
+            "sales_month": "2012-03-01T00:00:00.000Z",
+            "sales_year": "2012",
+            "sales_month_num": "3",
+            "total_revenue": "3336347.4574",
+            "total_orders": "304",
+            "avg_order_value": "10974.83",
+            "previous_year_revenue": null,
+            "previous_year_orders": null,
+            "yoy_revenue_growth_pct": null,
+            "yoy_orders_growth_pct": null
+        },
+        {
+            "sales_month": "2012-04-01T00:00:00.000Z",
+            "sales_year": "2012",
+            "sales_month_num": "4",
+            "total_revenue": "1871923.4832",
+            "total_orders": "269",
+            "avg_order_value": "6958.82",
+            "previous_year_revenue": null,
+            "previous_year_orders": null,
+            "yoy_revenue_growth_pct": null,
+            "yoy_orders_growth_pct": null
+        },
+        {
+            "sales_month": "2012-05-01T00:00:00.000Z",
+            "sales_year": "2012",
+            "sales_month_num": "5",
+            "total_revenue": "3452924.4049",
+            "total_orders": "293",
+            "avg_order_value": "11784.72",
+            "previous_year_revenue": null,
+            "previous_year_orders": null,
+            "yoy_revenue_growth_pct": null,
+            "yoy_orders_growth_pct": null
+        },
+        {
+            "sales_month": "2012-06-01T00:00:00.000Z",
+            "sales_year": "2012",
+            "sales_month_num": "6",
+            "total_revenue": "4610647.2443",
+            "total_orders": "390",
+            "avg_order_value": "11822.17",
+            "previous_year_revenue": "16588.4568",
+            "previous_year_orders": "5",
+            "yoy_revenue_growth_pct": "27694.31",
+            "yoy_orders_growth_pct": "7700.00"
+        },
+        {
+            "sales_month": "2012-07-01T00:00:00.000Z",
+            "sales_year": "2012",
+            "sales_month_num": "7",
+            "total_revenue": "3840231.4782",
+            "total_orders": "385",
+            "avg_order_value": "9974.63",
+            "previous_year_revenue": "2292182.8642",
+            "previous_year_orders": "231",
+            "yoy_revenue_growth_pct": "67.54",
+            "yoy_orders_growth_pct": "0.00"
+        },
+        {
+            "sales_month": "2012-08-01T00:00:00.000Z",
+            "sales_year": "2012",
+            "sales_month_num": "8",
+            "total_revenue": "2442451.1982",
+            "total_orders": "285",
+            "avg_order_value": "8570.00",
+            "previous_year_revenue": "2800576.1637",
+            "previous_year_orders": "250",
+            "yoy_revenue_growth_pct": "-12.79",
+            "yoy_orders_growth_pct": "0.00"
+        },
+        {
+            "sales_month": "2012-09-01T00:00:00.000Z",
+            "sales_year": "2012",
+            "sales_month_num": "9",
+            "total_revenue": "3881724.1883",
+            "total_orders": "352",
+            "avg_order_value": "11027.63",
+            "previous_year_revenue": "554791.5970",
+            "previous_year_orders": "157",
+            "yoy_revenue_growth_pct": "599.67",
+            "yoy_orders_growth_pct": "100.00"
+        },
+        {
+            "sales_month": "2012-10-01T00:00:00.000Z",
+            "sales_year": "2012",
+            "sales_month_num": "10",
+            "total_revenue": "2858060.2121",
+            "total_orders": "321",
+            "avg_order_value": "8903.61",
+            "previous_year_revenue": "5156269.5074",
+            "previous_year_orders": "327",
+            "yoy_revenue_growth_pct": "-44.57",
+            "yoy_orders_growth_pct": "0.00"
+        },
+        {
+            "sales_month": "2012-11-01T00:00:00.000Z",
+            "sales_year": "2012",
+            "sales_month_num": "11",
+            "total_revenue": "2097153.1512",
+            "total_orders": "383",
+            "avg_order_value": "5475.60",
+            "previous_year_revenue": "815312.9987",
+            "previous_year_orders": "230",
+            "yoy_revenue_growth_pct": "157.22",
+            "yoy_orders_growth_pct": "0.00"
+        },
+        {
+            "sales_month": "2012-12-01T00:00:00.000Z",
+            "sales_year": "2012",
+            "sales_month_num": "12",
+            "total_revenue": "3176848.1910",
+            "total_orders": "378",
+            "avg_order_value": "8404.36",
+            "previous_year_revenue": "1462448.8811",
+            "previous_year_orders": "228",
+            "yoy_revenue_growth_pct": "117.23",
+            "yoy_orders_growth_pct": "0.00"
+        },
+        {
+            "sales_month": "2013-01-01T00:00:00.000Z",
+            "sales_year": "2013",
+            "sales_month_num": "1",
+            "total_revenue": "2340061.5566",
+            "total_orders": "400",
+            "avg_order_value": "5850.15",
+            "previous_year_revenue": "4458337.4290",
+            "previous_year_orders": "336",
+            "yoy_revenue_growth_pct": "-47.51",
+            "yoy_orders_growth_pct": "0.00"
+        },
+        {
+            "sales_month": "2013-02-01T00:00:00.000Z",
+            "sales_year": "2013",
+            "sales_month_num": "2",
+            "total_revenue": "2600218.8981",
+            "total_orders": "325",
+            "avg_order_value": "8000.67",
+            "previous_year_revenue": "1649051.8865",
+            "previous_year_orders": "219",
+            "yoy_revenue_growth_pct": "57.68",
+            "yoy_orders_growth_pct": "0.00"
+        },
+        {
+            "sales_month": "2013-03-01T00:00:00.000Z",
+            "sales_year": "2013",
+            "sales_month_num": "3",
+            "total_revenue": "3831605.9411",
+            "total_orders": "441",
+            "avg_order_value": "8688.45",
+            "previous_year_revenue": "3336347.4574",
+            "previous_year_orders": "304",
+            "yoy_revenue_growth_pct": "14.84",
+            "yoy_orders_growth_pct": "0.00"
+        },
+        {
+            "sales_month": "2013-04-01T00:00:00.000Z",
+            "sales_year": "2013",
+            "sales_month_num": "4",
+            "total_revenue": "2840711.1690",
+            "total_orders": "428",
+            "avg_order_value": "6637.18",
+            "previous_year_revenue": "1871923.4832",
+            "previous_year_orders": "269",
+            "yoy_revenue_growth_pct": "51.75",
+            "yoy_orders_growth_pct": "0.00"
+        },
+        {
+            "sales_month": "2013-05-01T00:00:00.000Z",
+            "sales_year": "2013",
+            "sales_month_num": "5",
+            "total_revenue": "3658084.9639",
+            "total_orders": "428",
+            "avg_order_value": "8546.93",
+            "previous_year_revenue": "3452924.4049",
+            "previous_year_orders": "293",
+            "yoy_revenue_growth_pct": "5.94",
+            "yoy_orders_growth_pct": "0.00"
+        },
+        {
+            "sales_month": "2013-06-01T00:00:00.000Z",
+            "sales_year": "2013",
+            "sales_month_num": "6",
+            "total_revenue": "5726265.2573",
+            "total_orders": "719",
+            "avg_order_value": "7964.21",
+            "previous_year_revenue": "4610647.2443",
+            "previous_year_orders": "390",
+            "yoy_revenue_growth_pct": "24.20",
+            "yoy_orders_growth_pct": "0.00"
+        },
+        {
+            "sales_month": "2013-07-01T00:00:00.000Z",
+            "sales_year": "2013",
+            "sales_month_num": "7",
+            "total_revenue": "5521840.8430",
+            "total_orders": "1740",
+            "avg_order_value": "3173.47",
+            "previous_year_revenue": "3840231.4782",
+            "previous_year_orders": "385",
+            "yoy_revenue_growth_pct": "43.79",
+            "yoy_orders_growth_pct": "300.00"
+        },
+        {
+            "sales_month": "2013-08-01T00:00:00.000Z",
+            "sales_year": "2013",
+            "sales_month_num": "8",
+            "total_revenue": "3733973.0149",
+            "total_orders": "1789",
+            "avg_order_value": "2087.18",
+            "previous_year_revenue": "2442451.1982",
+            "previous_year_orders": "285",
+            "yoy_revenue_growth_pct": "52.88",
+            "yoy_orders_growth_pct": "500.00"
+        },
+        {
+            "sales_month": "2013-09-01T00:00:00.000Z",
+            "sales_year": "2013",
+            "sales_month_num": "9",
+            "total_revenue": "5083505.3410",
+            "total_orders": "1791",
+            "avg_order_value": "2838.36",
+            "previous_year_revenue": "3881724.1883",
+            "previous_year_orders": "352",
+            "yoy_revenue_growth_pct": "30.96",
+            "yoy_orders_growth_pct": "400.00"
+        },
+        {
+            "sales_month": "2013-10-01T00:00:00.000Z",
+            "sales_year": "2013",
+            "sales_month_num": "10",
+            "total_revenue": "5374375.9724",
+            "total_orders": "1968",
+            "avg_order_value": "2730.88",
+            "previous_year_revenue": "2858060.2121",
+            "previous_year_orders": "321",
+            "yoy_revenue_growth_pct": "88.04",
+            "yoy_orders_growth_pct": "500.00"
+        },
+        {
+            "sales_month": "2013-11-01T00:00:00.000Z",
+            "sales_year": "2013",
+            "sales_month_num": "11",
+            "total_revenue": "3694668.0127",
+            "total_orders": "2103",
+            "avg_order_value": "1756.86",
+            "previous_year_revenue": "2097153.1512",
+            "previous_year_orders": "383",
+            "yoy_revenue_growth_pct": "76.18",
+            "yoy_orders_growth_pct": "400.00"
+        },
+        {
+            "sales_month": "2013-12-01T00:00:00.000Z",
+            "sales_year": "2013",
+            "sales_month_num": "12",
+            "total_revenue": "4560577.1127",
+            "total_orders": "2050",
+            "avg_order_value": "2224.67",
+            "previous_year_revenue": "3176848.1910",
+            "previous_year_orders": "378",
+            "yoy_revenue_growth_pct": "43.56",
+            "yoy_orders_growth_pct": "400.00"
+        },
+        {
+            "sales_month": "2014-01-01T00:00:00.000Z",
+            "sales_year": "2014",
+            "sales_month_num": "1",
+            "total_revenue": "4798027.8851",
+            "total_orders": "2141",
+            "avg_order_value": "2241.02",
+            "previous_year_revenue": "2340061.5566",
+            "previous_year_orders": "400",
+            "yoy_revenue_growth_pct": "105.04",
+            "yoy_orders_growth_pct": "400.00"
+        },
+        {
+            "sales_month": "2014-02-01T00:00:00.000Z",
+            "sales_year": "2014",
+            "sales_month_num": "2",
+            "total_revenue": "1478213.2971",
+            "total_orders": "1756",
+            "avg_order_value": "841.81",
+            "previous_year_revenue": "2600218.8981",
+            "previous_year_orders": "325",
+            "yoy_revenue_growth_pct": "-43.15",
+            "yoy_orders_growth_pct": "400.00"
+        },
+        {
+            "sales_month": "2014-03-01T00:00:00.000Z",
+            "sales_year": "2014",
+            "sales_month_num": "3",
+            "total_revenue": "8097036.3049",
+            "total_orders": "2399",
+            "avg_order_value": "3375.17",
+            "previous_year_revenue": "3831605.9411",
+            "previous_year_orders": "441",
+            "yoy_revenue_growth_pct": "111.32",
+            "yoy_orders_growth_pct": "400.00"
+        },
+        {
+            "sales_month": "2014-04-01T00:00:00.000Z",
+            "sales_year": "2014",
+            "sales_month_num": "4",
+            "total_revenue": "1985886.1528",
+            "total_orders": "2115",
+            "avg_order_value": "938.95",
+            "previous_year_revenue": "2840711.1690",
+            "previous_year_orders": "428",
+            "yoy_revenue_growth_pct": "-30.09",
+            "yoy_orders_growth_pct": "300.00"
+        },
+        {
+            "sales_month": "2014-05-01T00:00:00.000Z",
+            "sales_year": "2014",
+            "sales_month_num": "5",
+            "total_revenue": "6006183.1926",
+            "total_orders": "2411",
+            "avg_order_value": "2491.16",
+            "previous_year_revenue": "3658084.9639",
+            "previous_year_orders": "428",
+            "yoy_revenue_growth_pct": "64.19",
+            "yoy_orders_growth_pct": "400.00"
+        },
+        {
+            "sales_month": "2014-06-01T00:00:00.000Z",
+            "sales_year": "2014",
+            "sales_month_num": "6",
+            "total_revenue": "54151.4785",
+            "total_orders": "939",
+            "avg_order_value": "57.67",
+            "previous_year_revenue": "5726265.2573",
+            "previous_year_orders": "719",
+            "yoy_revenue_growth_pct": "-99.05",
+            "yoy_orders_growth_pct": "0.00"
+        }
+    ],
+    "rowCount": 37,
+    "executionMs": 85,
+    "charts": [
+        {
+            "chartId": "multi_line",
+            "labelKey": "sales_month_num",
+            "chartConfig": {
+                "type": "line",
+                "title": "Evolución de Ventas (Total Revenue)",
+                "description": "Comparación de ventas totales entre los últimos 3 años y el año anterior",
+                "data": {
+                    "labels": [],
+                    "datasets": [
+                        {
+                            "label": "Ventas del Año Actual",
+                            "dataKey": "total_revenue",
+                            "backgroundColor": "#4F46E5",
+                            "borderColor": "#4F46E5",
+                            "borderWidth": 2,
+                            "tension": 0.3
+                        },
+                        {
+                            "label": "Ventas del Año Anterior",
+                            "dataKey": "previous_year_revenue",
+                            "backgroundColor": "#7C3AED",
+                            "borderColor": "#7C3AED",
+                            "borderWidth": 2,
+                            "tension": 0.3
+                        }
+                    ]
+                },
+                "options": {
+                    "responsive": true,
+                    "maintainAspectRatio": false,
+                    "plugins": {
+                        "legend": {
+                            "position": "top"
+                        },
+                        "title": {
+                            "display": true,
+                            "text": "Evolución de Ventas (Total Revenue)"
+                        },
+                        "tooltip": {
+                            "mode": "index",
+                            "intersect": false
+                        }
+                    },
+                    "scales": {
+                        "x": {
+                            "grid": {
+                                "display": false
+                            }
+                        },
+                        "y": {
+                            "beginAtZero": true,
+                            "ticks": {
+                                "callback": "value => '$' + value.toLocaleString()"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "chartId": "grouped_bar",
+            "labelKey": "sales_month_num",
+            "chartConfig": {
+                "type": "bar",
+                "title": "Comparación de Ventas por Mes (Total Revenue)",
+                "description": "Comparación de ventas totales entre los últimos 3 años y el año anterior por mes",
+                "data": {
+                    "labels": [],
+                    "datasets": [
+                        {
+                            "label": "Ventas del Año Actual",
+                            "dataKey": "total_revenue",
+                            "backgroundColor": "#4F46E5"
+                        },
+                        {
+                            "label": "Ventas del Año Anterior",
+                            "dataKey": "previous_year_revenue",
+                            "backgroundColor": "#7C3AED"
+                        }
+                    ]
+                },
+                "options": {
+                    "responsive": true,
+                    "maintainAspectRatio": false,
+                    "plugins": {
+                        "legend": {
+                            "position": "top"
+                        },
+                        "title": {
+                            "display": true,
+                            "text": "Comparación de Ventas por Mes (Total Revenue)"
+                        }
+                    },
+                    "scales": {
+                        "x": {
+                            "grid": {
+                                "display": false
+                            }
+                        },
+                        "y": {
+                            "beginAtZero": true,
+                            "ticks": {
+                                "callback": "value => '$' + value.toLocaleString()"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "chartId": "bar_line_mixed",
+            "labelKey": "sales_month_num",
+            "chartConfig": {
+                "type": "bar",
+                "title": "Ventas vs. Crecimiento Anual (%)",
+                "description": "Comparación de ventas totales y su crecimiento anual por mes",
+                "data": {
+                    "labels": [],
+                    "datasets": [
+                        {
+                            "label": "Ventas del Año Actual",
+                            "type": "bar",
+                            "dataKey": "total_revenue",
+                            "backgroundColor": "#4F46E5"
+                        },
+                        {
+                            "label": "Crecimiento Anual (%)",
+                            "type": "line",
+                            "dataKey": "yoy_revenue_growth_pct",
+                            "borderColor": "#F59E0B",
+                            "backgroundColor": "transparent",
+                            "borderWidth": 2,
+                            "tension": 0.3
+                        }
+                    ]
+                },
+                "options": {
+                    "responsive": true,
+                    "maintainAspectRatio": false,
+                    "plugins": {
+                        "legend": {
+                            "position": "top"
+                        },
+                        "title": {
+                            "display": true,
+                            "text": "Ventas vs. Crecimiento Anual (%)"
+                        }
+                    },
+                    "scales": {
+                        "x": {
+                            "grid": {
+                                "display": false
+                            }
+                        },
+                        "y": {
+                            "type": "linear",
+                            "position": "left",
+                            "beginAtZero": true,
+                            "title": {
+                                "display": true,
+                                "text": "Ventas ($)"
+                            }
+                        },
+                        "y1": {
+                            "type": "linear",
+                            "position": "right",
+                            "beginAtZero": false,
+                            "max": 50,
+                            "grid": {
+                                "drawOnChartArea": false
+                            },
+                            "ticks": {
+                                "callback": "value => value + '%'"
+                            },
+                            "title": {
+                                "display": true,
+                                "text": "Crecimiento Anual (%)"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "chartId": "table",
+            "chartConfig": {
+                "type": "table",
+                "title": "Tabla de Ventas por Mes (Últimos 3 Años)",
+                "description": "Vista tabular con todos los campos",
+                "data": {
+                    "labels": [],
+                    "datasets": []
+                },
+                "columns": [
+                    {
+                        "key": "sales_month",
+                        "label": "Mes",
+                        "type": "date"
+                    },
+                    {
+                        "key": "total_revenue",
+                        "label": "Total Revenue ($)",
+                        "type": "number"
+                    },
+                    {
+                        "key": "previous_year_revenue",
+                        "label": "Previous Year Revenue ($)",
+                        "type": "number"
+                    },
+                    {
+                        "key": "yoy_revenue_growth_pct",
+                        "label": "YOY Revenue Growth (%)",
+                        "type": "number"
+                    }
+                ],
+                "options": {
+                    "sortable": true,
+                    "paginate": true,
+                    "pageSize": 10,
+                    "striped": true,
+                    "highlightOnHover": true
+                }
+            }
+        }
+    ],
+    "recommendedChart": 0,
+    "suggestedFollowUps": [
+        "¿Cuáles son los meses con el mayor crecimiento anual?",
+        "¿Qué factores han contribuido al aumento en las ventas del último año?",
+        "¿Cómo se distribuyen las ventas por región o categoría de producto?"
+    ]
+}

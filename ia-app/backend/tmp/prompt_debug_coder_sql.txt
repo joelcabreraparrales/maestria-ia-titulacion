@@ -1,0 +1,4114 @@
+
+      ### ROLE:
+      You are a senior PostgreSQL data analyst specializing in business intelligence and analytical queries for dashboards and statistical charts.
+
+      ### CRITICAL RULES (VIOLATION = FAILURE):
+      1.  PostgreSQL syntax ONLY - no SQL Server, MySQL, or Oracle functions
+      2.  Column names MUST match EXACTLY from the schema JSON (case-sensitive)
+      3.  Table names MUST be fully qualified: schema_name.table_name
+      4.  JOIN columns MUST come from the relationships section - never guess
+      5.  Return ONLY SQL queries - no explanations, no markdown code blocks
+      6.  Multiple queries separated by: ---
+      7.  Each query ends with: LIMIT 1000
+
+      ### DATA QUALITY RULES (always apply unless user explicitly asks otherwise):
+      8.  FILTER ZERO/NULL METRICS: Exclude rows where the primary metric is NULL or 0.
+          - Raw rows:    WHERE metric_column > 0 AND metric_column IS NOT NULL
+          - Aggregates:  HAVING SUM(metric) > 0 OR HAVING COUNT(*) > 0
+          - Proportions: HAVING COUNT(DISTINCT id) > 0
+      9.  MEANINGFUL GROUPINGS ONLY: When grouping by a dimension (category, region,
+          product, territory), only include groups with real activity.
+          Bad:  GROUP BY category
+          Good: GROUP BY category HAVING SUM(total_revenue) > 0
+      10. COALESCE ALL NULLABLE METRICS: Wrap nullable numeric columns:
+          COALESCE(SUM(soh.totaldue), 0) AS total_revenue
+          Still apply HAVING COALESCE(SUM(soh.totaldue), 0) > 0 to exclude empty groups.
+      11. DATE RANGE COHERENCE: Apply date filters on the outermost query when using CTEs.
+          Every subquery or CTE that references fact tables must include the date filter.
+
+      ### POSTGRESQL-SPECIFIC REQUIREMENTS:
+      - Time truncation: Use DATE_TRUNC('month', column) or DATE_TRUNC('year', column)
+      - Date extraction: Use EXTRACT(YEAR FROM column), EXTRACT(MONTH FROM column)
+      - Date arithmetic: Use column - INTERVAL '3 years' or column + INTERVAL '1 month'
+      - Current date: Use CURRENT_DATE or NOW()
+      - Null handling: Use COALESCE(column, 0) and NULLIF(denominator, 0)
+      - Window functions: Use OVER (PARTITION BY ... ORDER BY ...) for YoY, MoM calculations
+      - CTEs: Use WITH clauses for complex multi-step transformations
+
+      ### DATE HANDLING RULE (DEVELOPMENT vs PRODUCTION):
+      ENVIRONMENT: DEVELOPMENT
+      **FOR DEVELOPMENT/HISTORICAL DATA (AdventureWorks, samples, etc.):**
+      - NEVER use CURRENT_DATE for filtering
+      - ALWAYS detect max date from the main fact table first
+      - Use this pattern:
+        WITH date_params AS (
+            SELECT
+                MAX(orderdate) - INTERVAL '3 years' AS min_date,
+                MAX(orderdate) AS max_date
+            FROM sales.salesorderheader
+        )
+
+      ### OUTPUT FORMAT FOR CHARTS:
+      Each query should return columns optimized for visualization:
+      - time_dimension: AS sales_month, sales_year, sales_period (consistent naming)
+      - metrics: AS total_revenue, total_orders, avg_value (clear metric names)
+      - dimensions: AS territory_name, product_category, customer_segment
+      - comparisons: AS yoy_growth_pct, mom_growth_pct, previous_period_value
+
+      ### QUERY COMPLEXITY EXPECTATIONS:
+      For analytical reports, include:
+      - Aggregations (SUM, COUNT, AVG, MIN, MAX)
+      - Window functions for comparisons (LAG, LEAD, running totals)
+      - CTEs for multi-step transformations
+      - Proper filtering for date ranges
+      - Percentage calculations with NULLIF protection
+
+      ### TABLE RELATIONSHIPS (USE EXACTLY THESE):
+        humanresources.employee.businessentityid → person.person.businessentityid
+  humanresources.employeedepartmenthistory.businessentityid → humanresources.employee.businessentityid
+  humanresources.employeedepartmenthistory.departmentid → humanresources.department.departmentid
+  humanresources.employeedepartmenthistory.shiftid → humanresources.shift.shiftid
+  humanresources.employeepayhistory.businessentityid → humanresources.employee.businessentityid
+  humanresources.jobcandidate.businessentityid → humanresources.employee.businessentityid
+  person.address.stateprovinceid → person.stateprovince.stateprovinceid
+  person.businessentityaddress.businessentityid → person.businessentity.businessentityid
+  person.businessentityaddress.addressid → person.address.addressid
+  person.businessentityaddress.addresstypeid → person.addresstype.addresstypeid
+  person.businessentitycontact.businessentityid → person.businessentity.businessentityid
+  person.businessentitycontact.personid → person.person.businessentityid
+  person.businessentitycontact.contacttypeid → person.contacttype.contacttypeid
+  person.emailaddress.businessentityid → person.person.businessentityid
+  person.password.businessentityid → person.person.businessentityid
+  person.person.businessentityid → person.businessentity.businessentityid
+  person.personphone.businessentityid → person.person.businessentityid
+  person.personphone.phonenumbertypeid → person.phonenumbertype.phonenumbertypeid
+  person.stateprovince.countryregioncode → person.countryregion.countryregioncode
+  person.stateprovince.territoryid → sales.salesterritory.territoryid
+  production.billofmaterials.productassemblyid → production.product.productid
+  production.billofmaterials.componentid → production.product.productid
+  production.billofmaterials.unitmeasurecode → production.unitmeasure.unitmeasurecode
+  production.document.owner → humanresources.employee.businessentityid
+  production.product.sizeunitmeasurecode → production.unitmeasure.unitmeasurecode
+  production.product.weightunitmeasurecode → production.unitmeasure.unitmeasurecode
+  production.product.productsubcategoryid → production.productsubcategory.productsubcategoryid
+  production.productcosthistory.productid → production.product.productid
+  production.productdocument.productid → production.product.productid
+  production.productinventory.productid → production.product.productid
+  production.productinventory.locationid → production.location.locationid
+  production.productlistpricehistory.productid → production.product.productid
+  production.productmodelproductdescriptionculture.productdescriptionid → production.productdescription.productdescriptionid
+  production.productmodelproductdescriptionculture.cultureid → production.culture.cultureid
+  production.productproductphoto.productid → production.product.productid
+  production.productproductphoto.productphotoid → production.productphoto.productphotoid
+  production.productreview.productid → production.product.productid
+  production.productsubcategory.productcategoryid → production.productcategory.productcategoryid
+  production.transactionhistory.productid → production.product.productid
+  production.workorder.productid → production.product.productid
+  production.workorder.scrapreasonid → production.scrapreason.scrapreasonid
+  production.workorderrouting.workorderid → production.workorder.workorderid
+  production.workorderrouting.locationid → production.location.locationid
+  purchasing.productvendor.productid → production.product.productid
+  purchasing.productvendor.businessentityid → purchasing.vendor.businessentityid
+  purchasing.productvendor.unitmeasurecode → production.unitmeasure.unitmeasurecode
+  purchasing.purchaseorderdetail.purchaseorderid → purchasing.purchaseorderheader.purchaseorderid
+  purchasing.purchaseorderdetail.productid → production.product.productid
+  purchasing.purchaseorderheader.employeeid → humanresources.employee.businessentityid
+  purchasing.purchaseorderheader.vendorid → purchasing.vendor.businessentityid
+  purchasing.purchaseorderheader.shipmethodid → purchasing.shipmethod.shipmethodid
+  purchasing.vendor.businessentityid → person.businessentity.businessentityid
+  sales.countryregioncurrency.countryregioncode → person.countryregion.countryregioncode
+  sales.countryregioncurrency.currencycode → sales.currency.currencycode
+  sales.currencyrate.fromcurrencycode → sales.currency.currencycode
+  sales.currencyrate.tocurrencycode → sales.currency.currencycode
+  sales.customer.personid → person.person.businessentityid
+  sales.customer.storeid → sales.store.businessentityid
+  sales.customer.territoryid → sales.salesterritory.territoryid
+  sales.personcreditcard.businessentityid → person.person.businessentityid
+  sales.personcreditcard.creditcardid → sales.creditcard.creditcardid
+  sales.salesorderdetail.salesorderid → sales.salesorderheader.salesorderid
+  sales.salesorderheader.customerid → sales.customer.customerid
+  sales.salesorderheader.salespersonid → sales.salesperson.businessentityid
+  sales.salesorderheader.territoryid → sales.salesterritory.territoryid
+  sales.salesorderheader.billtoaddressid → person.address.addressid
+  sales.salesorderheader.shiptoaddressid → person.address.addressid
+  sales.salesorderheader.shipmethodid → purchasing.shipmethod.shipmethodid
+  sales.salesorderheader.creditcardid → sales.creditcard.creditcardid
+  sales.salesorderheader.currencyrateid → sales.currencyrate.currencyrateid
+  sales.salesorderheadersalesreason.salesorderid → sales.salesorderheader.salesorderid
+  sales.salesorderheadersalesreason.salesreasonid → sales.salesreason.salesreasonid
+  sales.salesperson.businessentityid → humanresources.employee.businessentityid
+  sales.salesperson.territoryid → sales.salesterritory.territoryid
+  sales.salespersonquotahistory.businessentityid → sales.salesperson.businessentityid
+  sales.salestaxrate.stateprovinceid → person.stateprovince.stateprovinceid
+  sales.salesterritory.countryregioncode → person.countryregion.countryregioncode
+  sales.salesterritoryhistory.businessentityid → sales.salesperson.businessentityid
+  sales.salesterritoryhistory.territoryid → sales.salesterritory.territoryid
+  sales.shoppingcartitem.productid → production.product.productid
+  sales.specialofferproduct.specialofferid → sales.specialoffer.specialofferid
+  sales.specialofferproduct.productid → production.product.productid
+  sales.store.businessentityid → person.businessentity.businessentityid
+  sales.store.salespersonid → sales.salesperson.businessentityid
+
+      ### SCHEMA (JSON):
+      {
+  "schemaNames": [
+    "dbo",
+    "humanresources",
+    "person",
+    "production",
+    "public",
+    "purchasing",
+    "sales"
+  ],
+  "tables": [
+    {
+      "name": "awbuildversion",
+      "schema": "dbo",
+      "columns": [
+        {
+          "name": "systeminformationid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "Database Version",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "versiondate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "databaselog",
+      "schema": "dbo",
+      "columns": [
+        {
+          "name": "databaselogid",
+          "type": "bigint",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "posttime",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "databaseuser",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "event",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "schema",
+          "type": "text",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "object",
+          "type": "text",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "tsql",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "xmlevent",
+          "type": "xml",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "errorlog",
+      "schema": "dbo",
+      "columns": [
+        {
+          "name": "errorlogid",
+          "type": "bigint",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "errortime",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "username",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "errornumber",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "errorseverity",
+          "type": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "errorstate",
+          "type": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "errorprocedure",
+          "type": "text",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "errorline",
+          "type": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "errormessage",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "department",
+      "schema": "humanresources",
+      "columns": [
+        {
+          "name": "departmentid",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "groupname",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "employee",
+      "schema": "humanresources",
+      "columns": [
+        {
+          "name": "businessentityid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "person"
+        },
+        {
+          "name": "nationalidnumber",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "loginid",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "organizationnode",
+          "type": "bytea",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "organizationlevel",
+          "type": "smallint",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "jobtitle",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "birthdate",
+          "type": "date",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "maritalstatus",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "gender",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "hiredate",
+          "type": "date",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "salariedflag",
+          "type": "boolean",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "vacationhours",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "sickleavehours",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "currentflag",
+          "type": "boolean",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "employeedepartmenthistory",
+      "schema": "humanresources",
+      "columns": [
+        {
+          "name": "businessentityid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "employee"
+        },
+        {
+          "name": "departmentid",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "department"
+        },
+        {
+          "name": "shiftid",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "shift"
+        },
+        {
+          "name": "startdate",
+          "type": "date",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "enddate",
+          "type": "date",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "employeepayhistory",
+      "schema": "humanresources",
+      "columns": [
+        {
+          "name": "businessentityid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "employee"
+        },
+        {
+          "name": "ratechangedate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "rate",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "payfrequency",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "jobcandidate",
+      "schema": "humanresources",
+      "columns": [
+        {
+          "name": "jobcandidateid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "businessentityid",
+          "type": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "employee"
+        },
+        {
+          "name": "resume",
+          "type": "xml",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "shift",
+      "schema": "humanresources",
+      "columns": [
+        {
+          "name": "shiftid",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "starttime",
+          "type": "time without time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "endtime",
+          "type": "time without time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "address",
+      "schema": "person",
+      "columns": [
+        {
+          "name": "addressid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "addressline1",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "addressline2",
+          "type": "text",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "city",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "stateprovinceid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "stateprovince"
+        },
+        {
+          "name": "postalcode",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "spatiallocation",
+          "type": "bytea",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "addresstype",
+      "schema": "person",
+      "columns": [
+        {
+          "name": "addresstypeid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "businessentity",
+      "schema": "person",
+      "columns": [
+        {
+          "name": "businessentityid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "businessentityaddress",
+      "schema": "person",
+      "columns": [
+        {
+          "name": "businessentityid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "businessentity"
+        },
+        {
+          "name": "addressid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "address"
+        },
+        {
+          "name": "addresstypeid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "addresstype"
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "businessentitycontact",
+      "schema": "person",
+      "columns": [
+        {
+          "name": "businessentityid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "businessentity"
+        },
+        {
+          "name": "personid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "person"
+        },
+        {
+          "name": "contacttypeid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "contacttype"
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "contacttype",
+      "schema": "person",
+      "columns": [
+        {
+          "name": "contacttypeid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "countryregion",
+      "schema": "person",
+      "columns": [
+        {
+          "name": "countryregioncode",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "emailaddress",
+      "schema": "person",
+      "columns": [
+        {
+          "name": "businessentityid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "person"
+        },
+        {
+          "name": "emailaddressid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "emailaddress",
+          "type": "text",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "password",
+      "schema": "person",
+      "columns": [
+        {
+          "name": "businessentityid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "person"
+        },
+        {
+          "name": "passwordhash",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "passwordsalt",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "person",
+      "schema": "person",
+      "columns": [
+        {
+          "name": "businessentityid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "businessentity"
+        },
+        {
+          "name": "persontype",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "namestyle",
+          "type": "boolean",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "firstname",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "middlename",
+          "type": "text",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "lastname",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "suffix",
+          "type": "text",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "emailpromotion",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "additionalcontactinfo",
+          "type": "xml",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "demographics",
+          "type": "xml",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "personphone",
+      "schema": "person",
+      "columns": [
+        {
+          "name": "businessentityid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "person"
+        },
+        {
+          "name": "phonenumber",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "phonenumbertypeid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "phonenumbertype"
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "phonenumbertype",
+      "schema": "person",
+      "columns": [
+        {
+          "name": "phonenumbertypeid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "stateprovince",
+      "schema": "person",
+      "columns": [
+        {
+          "name": "stateprovinceid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "stateprovincecode",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "countryregioncode",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "countryregion"
+        },
+        {
+          "name": "isonlystateprovinceflag",
+          "type": "boolean",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "territoryid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "salesterritory"
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "billofmaterials",
+      "schema": "production",
+      "columns": [
+        {
+          "name": "billofmaterialsid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "productassemblyid",
+          "type": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "product"
+        },
+        {
+          "name": "componentid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "product"
+        },
+        {
+          "name": "startdate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "enddate",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "unitmeasurecode",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "unitmeasure"
+        },
+        {
+          "name": "bomlevel",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "perassemblyqty",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "culture",
+      "schema": "production",
+      "columns": [
+        {
+          "name": "cultureid",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "document",
+      "schema": "production",
+      "columns": [
+        {
+          "name": "documentnode",
+          "type": "bytea",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "documentlevel",
+          "type": "smallint",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "owner",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "employee"
+        },
+        {
+          "name": "folderflag",
+          "type": "boolean",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "filename",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "fileextension",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "revision",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "changenumber",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "status",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "documentsummary",
+          "type": "text",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "document",
+          "type": "bytea",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "illustration",
+      "schema": "production",
+      "columns": [
+        {
+          "name": "illustrationid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "diagram",
+          "type": "xml",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "location",
+      "schema": "production",
+      "columns": [
+        {
+          "name": "locationid",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "costrate",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "availability",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "product",
+      "schema": "production",
+      "columns": [
+        {
+          "name": "productid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "productnumber",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "makeflag",
+          "type": "boolean",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "finishedgoodsflag",
+          "type": "boolean",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "color",
+          "type": "text",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "safetystocklevel",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "reorderpoint",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "standardcost",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "listprice",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "size",
+          "type": "text",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "sizeunitmeasurecode",
+          "type": "text",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "unitmeasure"
+        },
+        {
+          "name": "weightunitmeasurecode",
+          "type": "text",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "unitmeasure"
+        },
+        {
+          "name": "weight",
+          "type": "numeric",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "daystomanufacture",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "productline",
+          "type": "text",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "class",
+          "type": "text",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "style",
+          "type": "text",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "productsubcategoryid",
+          "type": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "productsubcategory"
+        },
+        {
+          "name": "productmodelid",
+          "type": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "sellstartdate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "sellenddate",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "discontinueddate",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "productcategory",
+      "schema": "production",
+      "columns": [
+        {
+          "name": "productcategoryid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "productcosthistory",
+      "schema": "production",
+      "columns": [
+        {
+          "name": "productid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "product"
+        },
+        {
+          "name": "startdate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "enddate",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "standardcost",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "productdescription",
+      "schema": "production",
+      "columns": [
+        {
+          "name": "productdescriptionid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "productdocument",
+      "schema": "production",
+      "columns": [
+        {
+          "name": "productid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "product"
+        },
+        {
+          "name": "documentnode",
+          "type": "bytea",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "productinventory",
+      "schema": "production",
+      "columns": [
+        {
+          "name": "productid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "product"
+        },
+        {
+          "name": "locationid",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "location"
+        },
+        {
+          "name": "shelf",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "bin",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "quantity",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "productlistpricehistory",
+      "schema": "production",
+      "columns": [
+        {
+          "name": "productid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "product"
+        },
+        {
+          "name": "startdate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "enddate",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "listprice",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "productmodel",
+      "schema": "production",
+      "columns": [
+        {
+          "name": "productmodelid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "catalogdescription",
+          "type": "xml",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "instructions",
+          "type": "xml",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "productmodelillustration",
+      "schema": "production",
+      "columns": [
+        {
+          "name": "productmodelid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "illustrationid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "productmodelproductdescriptionculture",
+      "schema": "production",
+      "columns": [
+        {
+          "name": "productmodelid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "productdescriptionid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "productdescription"
+        },
+        {
+          "name": "cultureid",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "culture"
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "productphoto",
+      "schema": "production",
+      "columns": [
+        {
+          "name": "productphotoid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "thumbnailphoto",
+          "type": "bytea",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "thumbnailphotofilename",
+          "type": "text",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "largephoto",
+          "type": "bytea",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "largephotofilename",
+          "type": "text",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "productproductphoto",
+      "schema": "production",
+      "columns": [
+        {
+          "name": "productid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "product"
+        },
+        {
+          "name": "productphotoid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "productphoto"
+        },
+        {
+          "name": "primary",
+          "type": "boolean",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "productreview",
+      "schema": "production",
+      "columns": [
+        {
+          "name": "productreviewid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "productid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "product"
+        },
+        {
+          "name": "reviewername",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "reviewdate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "emailaddress",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "rating",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "comments",
+          "type": "text",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "productsubcategory",
+      "schema": "production",
+      "columns": [
+        {
+          "name": "productsubcategoryid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "productcategoryid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "productcategory"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "scrapreason",
+      "schema": "production",
+      "columns": [
+        {
+          "name": "scrapreasonid",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "transactionhistory",
+      "schema": "production",
+      "columns": [
+        {
+          "name": "transactionid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "productid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "product"
+        },
+        {
+          "name": "referenceorderid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "referenceorderlineid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "transactiondate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "transactiontype",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "quantity",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "actualcost",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "transactionhistoryarchive",
+      "schema": "production",
+      "columns": [
+        {
+          "name": "transactionid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "productid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "referenceorderid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "referenceorderlineid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "transactiondate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "transactiontype",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "quantity",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "actualcost",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "unitmeasure",
+      "schema": "production",
+      "columns": [
+        {
+          "name": "unitmeasurecode",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "workorder",
+      "schema": "production",
+      "columns": [
+        {
+          "name": "workorderid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "productid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "product"
+        },
+        {
+          "name": "orderqty",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "stockedqty",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "scrappedqty",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "startdate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "enddate",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "duedate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "scrapreasonid",
+          "type": "smallint",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "scrapreason"
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "workorderrouting",
+      "schema": "production",
+      "columns": [
+        {
+          "name": "workorderid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "workorder"
+        },
+        {
+          "name": "productid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "operationsequence",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "locationid",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "location"
+        },
+        {
+          "name": "scheduledstartdate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "scheduledenddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "actualstartdate",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "actualenddate",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "actualresourcehrs",
+          "type": "numeric",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "plannedcost",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "actualcost",
+          "type": "numeric",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "productvendor",
+      "schema": "purchasing",
+      "columns": [
+        {
+          "name": "productid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "product"
+        },
+        {
+          "name": "businessentityid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "vendor"
+        },
+        {
+          "name": "averageleadtime",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "standardprice",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "lastreceiptcost",
+          "type": "numeric",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "lastreceiptdate",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "minorderqty",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "maxorderqty",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "onorderqty",
+          "type": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "unitmeasurecode",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "unitmeasure"
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "purchaseorderdetail",
+      "schema": "purchasing",
+      "columns": [
+        {
+          "name": "purchaseorderid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "purchaseorderheader"
+        },
+        {
+          "name": "purchaseorderdetailid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "duedate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "orderqty",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "productid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "product"
+        },
+        {
+          "name": "unitprice",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "linetotal",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "receivedqty",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "rejectedqty",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "stockedqty",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "purchaseorderheader",
+      "schema": "purchasing",
+      "columns": [
+        {
+          "name": "purchaseorderid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "revisionnumber",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "status",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "employeeid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "employee"
+        },
+        {
+          "name": "vendorid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "vendor"
+        },
+        {
+          "name": "shipmethodid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "shipmethod"
+        },
+        {
+          "name": "orderdate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "shipdate",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "subtotal",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "taxamt",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "freight",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "totaldue",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "shipmethod",
+      "schema": "purchasing",
+      "columns": [
+        {
+          "name": "shipmethodid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "shipbase",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "shiprate",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "vendor",
+      "schema": "purchasing",
+      "columns": [
+        {
+          "name": "businessentityid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "businessentity"
+        },
+        {
+          "name": "accountnumber",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "creditrating",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "preferredvendorstatus",
+          "type": "boolean",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "activeflag",
+          "type": "boolean",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "purchasingwebserviceurl",
+          "type": "text",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "countryregioncurrency",
+      "schema": "sales",
+      "columns": [
+        {
+          "name": "countryregioncode",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "countryregion"
+        },
+        {
+          "name": "currencycode",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "currency"
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "creditcard",
+      "schema": "sales",
+      "columns": [
+        {
+          "name": "creditcardid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "cardtype",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "cardnumber",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "expmonth",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "expyear",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "currency",
+      "schema": "sales",
+      "columns": [
+        {
+          "name": "currencycode",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "currencyrate",
+      "schema": "sales",
+      "columns": [
+        {
+          "name": "currencyrateid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "currencyratedate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "fromcurrencycode",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "currency"
+        },
+        {
+          "name": "tocurrencycode",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "currency"
+        },
+        {
+          "name": "averagerate",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "endofdayrate",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "customer",
+      "schema": "sales",
+      "columns": [
+        {
+          "name": "customerid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "personid",
+          "type": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "person"
+        },
+        {
+          "name": "storeid",
+          "type": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "store"
+        },
+        {
+          "name": "territoryid",
+          "type": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "salesterritory"
+        },
+        {
+          "name": "accountnumber",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "personcreditcard",
+      "schema": "sales",
+      "columns": [
+        {
+          "name": "businessentityid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "person"
+        },
+        {
+          "name": "creditcardid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "creditcard"
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "salesorderdetail",
+      "schema": "sales",
+      "columns": [
+        {
+          "name": "salesorderid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "salesorderheader"
+        },
+        {
+          "name": "salesorderdetailid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "carriertrackingnumber",
+          "type": "text",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "orderqty",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "productid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "specialofferid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "unitprice",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "unitpricediscount",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "linetotal",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "salesorderheader",
+      "schema": "sales",
+      "columns": [
+        {
+          "name": "salesorderid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "revisionnumber",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "orderdate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "duedate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "shipdate",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "status",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "onlineorderflag",
+          "type": "boolean",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "salesordernumber",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "purchaseordernumber",
+          "type": "text",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "accountnumber",
+          "type": "text",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "customerid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "customer"
+        },
+        {
+          "name": "salespersonid",
+          "type": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "salesperson"
+        },
+        {
+          "name": "territoryid",
+          "type": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "salesterritory"
+        },
+        {
+          "name": "billtoaddressid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "address"
+        },
+        {
+          "name": "shiptoaddressid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "address"
+        },
+        {
+          "name": "shipmethodid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "shipmethod"
+        },
+        {
+          "name": "creditcardid",
+          "type": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "creditcard"
+        },
+        {
+          "name": "creditcardapprovalcode",
+          "type": "text",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "currencyrateid",
+          "type": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "currencyrate"
+        },
+        {
+          "name": "subtotal",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "taxamt",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "freight",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "totaldue",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "comment",
+          "type": "text",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "salesorderheadersalesreason",
+      "schema": "sales",
+      "columns": [
+        {
+          "name": "salesorderid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "salesorderheader"
+        },
+        {
+          "name": "salesreasonid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "salesreason"
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "salesperson",
+      "schema": "sales",
+      "columns": [
+        {
+          "name": "businessentityid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "employee"
+        },
+        {
+          "name": "territoryid",
+          "type": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "salesterritory"
+        },
+        {
+          "name": "salesquota",
+          "type": "numeric",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "bonus",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "commissionpct",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "salesytd",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "saleslastyear",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "salespersonquotahistory",
+      "schema": "sales",
+      "columns": [
+        {
+          "name": "businessentityid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "salesperson"
+        },
+        {
+          "name": "quotadate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "salesquota",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "salesreason",
+      "schema": "sales",
+      "columns": [
+        {
+          "name": "salesreasonid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "reasontype",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "salestaxrate",
+      "schema": "sales",
+      "columns": [
+        {
+          "name": "salestaxrateid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "stateprovinceid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "stateprovince"
+        },
+        {
+          "name": "taxtype",
+          "type": "smallint",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "taxrate",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "salesterritory",
+      "schema": "sales",
+      "columns": [
+        {
+          "name": "territoryid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "countryregioncode",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "countryregion"
+        },
+        {
+          "name": "group",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "salesytd",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "saleslastyear",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "costytd",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "costlastyear",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "salesterritoryhistory",
+      "schema": "sales",
+      "columns": [
+        {
+          "name": "businessentityid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "salesperson"
+        },
+        {
+          "name": "territoryid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "salesterritory"
+        },
+        {
+          "name": "startdate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "enddate",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "shoppingcartitem",
+      "schema": "sales",
+      "columns": [
+        {
+          "name": "shoppingcartitemid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "shoppingcartid",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "quantity",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "productid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "product"
+        },
+        {
+          "name": "datecreated",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "specialoffer",
+      "schema": "sales",
+      "columns": [
+        {
+          "name": "specialofferid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "discountpct",
+          "type": "numeric",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "type",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "category",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "startdate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "enddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "minqty",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "maxqty",
+          "type": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "specialofferproduct",
+      "schema": "sales",
+      "columns": [
+        {
+          "name": "specialofferid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "specialoffer"
+        },
+        {
+          "name": "productid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "product"
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    },
+    {
+      "name": "store",
+      "schema": "sales",
+      "columns": [
+        {
+          "name": "businessentityid",
+          "type": "integer",
+          "nullable": false,
+          "isPrimaryKey": true,
+          "isForeignKey": true,
+          "foreignTable": "businessentity"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "salespersonid",
+          "type": "integer",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "foreignTable": "salesperson"
+        },
+        {
+          "name": "demographics",
+          "type": "xml",
+          "nullable": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "rowguid",
+          "type": "uuid",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        },
+        {
+          "name": "modifieddate",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false
+        }
+      ]
+    }
+  ]
+}
+
+      ### EXAMPLE QUERY PATTERNS:
+
+      -- Time series with YoY comparison
+      SELECT
+          DATE_TRUNC('month', soh.orderdate) AS sales_month,
+          SUM(soh.totaldue) AS total_revenue,
+          LAG(SUM(soh.totaldue), 12) OVER (ORDER BY DATE_TRUNC('month', soh.orderdate)) AS previous_year_revenue,
+          ROUND(((SUM(soh.totaldue) - LAG(SUM(soh.totaldue), 12) OVER (ORDER BY DATE_TRUNC('month', soh.orderdate))) /
+                NULLIF(LAG(SUM(soh.totaldue), 12) OVER (ORDER BY DATE_TRUNC('month', soh.orderdate)), 0)) * 100, 2) AS yoy_growth_pct
+      FROM sales.salesorderheader soh
+      WHERE soh.orderdate >= CURRENT_DATE - INTERVAL '3 years'
+      GROUP BY DATE_TRUNC('month', soh.orderdate)
+      ORDER BY sales_month
+      LIMIT 1000
+
+      -- Multi-dimensional aggregation
+      SELECT
+          DATE_TRUNC('month', soh.orderdate) AS sales_month,
+          pc.name AS product_category,
+          SUM(sod.linetotal) AS total_revenue,
+          COUNT(DISTINCT soh.salesorderid) AS total_orders
+      FROM sales.salesorderheader soh
+      INNER JOIN sales.salesorderdetail sod ON soh.salesorderid = sod.salesorderid
+      INNER JOIN production.product p ON sod.productid = p.productid
+      INNER JOIN production.productsubcategory ps ON p.productsubcategoryid = ps.productsubcategoryid
+      INNER JOIN production.productcategory pc ON ps.productcategoryid = pc.productcategoryid
+      WHERE soh.orderdate >= CURRENT_DATE - INTERVAL '3 years'
+      GROUP BY DATE_TRUNC('month', soh.orderdate), pc.name
+      ORDER BY sales_month, total_revenue DESC
+      LIMIT 1000
+    
+
+### USER QUESTION:
+¿Cuáles son las ventas del mes?
+
+### RESPONSE (SQL ONLY):
