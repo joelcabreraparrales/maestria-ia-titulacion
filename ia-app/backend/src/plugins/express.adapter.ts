@@ -36,6 +36,9 @@ export class ExpressServer extends Server {
   }
 
   protected configRoutes(): void {
+    this.app.get("/health", (_req, res) => {
+      res.json({ status: "ok", timestamp: new Date().toISOString() });
+    });
     this.app.use("/api/auth", buildAuthRouter());
     this.app.use("/api/profile", buildProfileRouter());
     this.app.use("/api/chatbot", buildChatbotRouter());
